@@ -14,7 +14,7 @@ issues:
     it has not had activity from the community in the last year. It will be
     closed if no further activity occurs within 20 days.
   closeComment: >
-    This issue has been automatically closed because it is has not had activity
+    This issue has been automatically closed because it has not had activity
     from the community in the last year.
     
 pulls:
