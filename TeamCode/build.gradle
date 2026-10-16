@@ -20,7 +20,7 @@ android {
     defaultConfig {
         externalNativeBuild {
             cmake {
-                cppFlags ''
+                cppFlags '-std=c++23'
             }
         }
     }
