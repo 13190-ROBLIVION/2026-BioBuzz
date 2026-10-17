@@ -5,17 +5,20 @@ import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.lin
 import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.telemetry;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 public class Shooting {
-    private DcMotor shootingMotor;
+    private DcMotorEx shootingMotor;
 
     /**
      * Initialize the motors for shooting
      * I think this should be done at first start
      */
     public void initShooting() {
-        shootingMotor = hardwareMap.get(DcMotor.class, "shootingMotor");
+        shootingMotor = hardwareMap.get(DcMotorEx.class, "shootingMotor");
+
+        shootingMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         // TODO: Reverse it if needed
         // shootingMotor.setDirection(DcMotor.Direction.REVERSE);
@@ -55,11 +58,28 @@ public class Shooting {
         stopShootingMotors();
     }
 
+    public void shoot(double targetRPM, double activationTime) {
+        shootingMotor.setPower(shotPower);
+
+        ElapsedTime timer = new ElapsedTime();
+        timer.reset();
+
+        while (activationTime >= timer.milliseconds()) {
+            linearOpMode.idle();    // I think this idles it.
+        }
+
+        stopShootingMotors();
+    }
+
     // Optional: stop the motors
     public void stopShootingMotors() {
         shootingMotor.setPower(0);
 
         telemetry.addData("Set motor 1 power to: ", shootingMotor.getPower());
         telemetry.update();
+    }
+
+    private double RPMtoTPS(double RPM, double countsPerRev){
+        return ((RPM/60) * countsPerRev);
     }
 }
