@@ -11,6 +11,12 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 public class Shooting {
     private DcMotorEx shootingMotor;
 
+    // Random Constants
+    private static class constants {
+        static final double idleRPM = 0;
+        static final double shootingMotorCPR = -67676767;
+    }
+
     /**
      * Initialize the motors for shooting
      * I think this should be done at first start
@@ -18,7 +24,9 @@ public class Shooting {
     public void initShooting() {
         shootingMotor = hardwareMap.get(DcMotorEx.class, "shootingMotor");
 
+        shootingMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         shootingMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        shootingMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         // TODO: Reverse it if needed
         // shootingMotor.setDirection(DcMotor.Direction.REVERSE);
@@ -41,7 +49,7 @@ public class Shooting {
     }
 
     /**
-     * Shoot with a timer for how long the motor spins.
+     * Shoot with a timer for how long the motor spins based on power.
      * @param shotPower
      * @param activationTime
      */
@@ -58,8 +66,13 @@ public class Shooting {
         stopShootingMotors();
     }
 
-    public void shoot(double targetRPM, double activationTime) {
-        shootingMotor.setPower(shotPower);
+    /**
+     * Shoot for a certain amount of time based on RPM instead of power.
+     * @param targetRPM
+     * @param activationTime
+     */
+    public void shootRPM(double targetRPM, double activationTime) {
+        shootingMotor.setVelocity(RPMtoTPS(targetRPM, constants.shootingMotorCPR));
 
         ElapsedTime timer = new ElapsedTime();
         timer.reset();
@@ -71,11 +84,21 @@ public class Shooting {
         stopShootingMotors();
     }
 
+    /**
+     * Shoot based on RPM.
+     * You need to stop it later.
+     * @param targetRPM
+     */
+    public void shootRPM(double targetRPM) {
+        shootingMotor.setVelocity(RPMtoTPS(targetRPM, constants.shootingMotorCPR));
+    }
+
     // Optional: stop the motors
     public void stopShootingMotors() {
         shootingMotor.setPower(0);
+        shootingMotor.setVelocity(constants.idleRPM);
 
-        telemetry.addData("Set motor 1 power to: ", shootingMotor.getPower());
+        telemetry.addData("Stopped motor. Speed is now: ", shootingMotor.getPower());
         telemetry.update();
     }
 
