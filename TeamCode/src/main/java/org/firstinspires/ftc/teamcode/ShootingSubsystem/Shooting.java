@@ -14,7 +14,7 @@ public class Shooting {
     // Random Constants
     private static class constants {
         static final double idleRPM = 0;
-        static final double shootingMotorCPR = -67676767;
+        static final double shootingMotorCPR = 28;
     }
 
     /**
