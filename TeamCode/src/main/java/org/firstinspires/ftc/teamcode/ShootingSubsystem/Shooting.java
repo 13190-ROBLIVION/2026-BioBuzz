@@ -17,6 +17,8 @@ public class Shooting {
         static final double shootingMotorCPR = 28;
     }
 
+    private boolean isShooting = false;
+
     /**
      * Initialize the motors for shooting
      * I think this should be done at first start
@@ -35,6 +37,15 @@ public class Shooting {
         telemetry.update();
     }
 
+    private void whileShooting() {
+        isShooting = true;
+
+        while(isShooting) {
+            telemetry.addData("Current speed is: ", TPStoRPM(shootingMotor.getVelocity(), constants.shootingMotorCPR));
+            linearOpMode.idle();
+        }
+    }
+
     /**
      * Just set the motors to a power.
      * You need to stop them later.
@@ -46,6 +57,8 @@ public class Shooting {
         telemetry.addData("Set shooting motor power to: ", shootingMotor.getPower());
         telemetry.addLine("Running until stopped!");
         telemetry.update();
+
+        whileShooting();
     }
 
     /**
@@ -78,6 +91,8 @@ public class Shooting {
         timer.reset();
 
         while (activationTime >= timer.milliseconds()) {
+            telemetry.addData("Current shooting motor RPM is: ", TPStoRPM(shootingMotor.getVelocity(), constants.shootingMotorCPR));
+
             linearOpMode.idle();    // I think this idles it.
         }
 
@@ -91,6 +106,8 @@ public class Shooting {
      */
     public void shootRPM(double targetRPM) {
         shootingMotor.setVelocity(RPMtoTPS(targetRPM, constants.shootingMotorCPR));
+
+        whileShooting();
     }
 
     // Optional: stop the motors
@@ -105,4 +122,5 @@ public class Shooting {
     private double RPMtoTPS(double RPM, double countsPerRev){
         return ((RPM/60) * countsPerRev);
     }
+    private double TPStoRPM(double TPS, double countsPerRev) { return ((TPS / countsPerRev) * 60); }
 }
