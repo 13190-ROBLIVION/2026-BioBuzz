@@ -9,6 +9,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 public class Feeder {
     DcMotor feederMotor;
+    private boolean feedingCycleRunning;
 
     /**
      * Intake Motor Initialization
@@ -26,11 +27,16 @@ public class Feeder {
     }
 
     public void feedOnce() {
-
+        if (feedingCycleRunning) {
+            telemetry.addLine("")
+        }
+        feedingCycleRunning=true;
     }
 
     public void stopFeeder() {
         feederMotor.setPower(0);
+
+        telemetry.addLine("Stopped feeder motor.");
     }
 }
 
