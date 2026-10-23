@@ -28,15 +28,20 @@ public class Feeder {
 
     public void feedOnce() {
         if (feedingCycleRunning) {
-            telemetry.addLine("")
+            telemetry.addLine("[!] Feeding cycle already running!");
+            telemetry.update();
+            return;
         }
         feedingCycleRunning=true;
+
+        feedingCycleRunning=false;
     }
 
     public void stopFeeder() {
         feederMotor.setPower(0);
 
         telemetry.addLine("Stopped feeder motor.");
+        telemetry.update();
     }
 }
 
