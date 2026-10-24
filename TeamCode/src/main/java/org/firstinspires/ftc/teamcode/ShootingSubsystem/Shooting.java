@@ -56,6 +56,8 @@ public class Shooting {
         telemetry.update();
 
         whileShooting();
+
+        return;
     }
 
     /**
@@ -74,6 +76,8 @@ public class Shooting {
         }
 
         stopShootingMotors();
+
+        return;
     }
 
     /**
@@ -94,6 +98,8 @@ public class Shooting {
         }
 
         stopShootingMotors();
+
+        return;
     }
 
     /**
@@ -105,6 +111,8 @@ public class Shooting {
         shootingMotor.setVelocity(RPMtoTPS(targetRPM, constants.shootingMotorCPR));
 
         whileShooting();
+
+        return;
     }
 
     // Optional: stop the motors
@@ -114,10 +122,10 @@ public class Shooting {
 
         telemetry.addData("Stopped motor. Speed is now: ", shootingMotor.getPower());
         telemetry.update();
+
+        return;
     }
 
-    private double RPMtoTPS(double RPM, double countsPerRev){
-        return ((RPM/60) * countsPerRev);
-    }
+    private double RPMtoTPS(double RPM, double countsPerRev) { return ((RPM/60) * countsPerRev); }
     private double TPStoRPM(double TPS, double countsPerRev) { return ((TPS / countsPerRev) * 60); }
 }
