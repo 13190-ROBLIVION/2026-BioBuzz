@@ -9,21 +9,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 public class Shooting {
-    private DcMotorEx shootingMotor;
-
-    // Random Constants
-    private static class constants {
-        static final double idleRPM = 0;
-        static final double shootingMotorCPR = 28;
-    }
-
-    private boolean isShooting = false;
-
-    /**
-     * Initialize the motors for shooting
-     * I think this should be done at first start
-     */
-    public void initShooting() {
+    public Shooting() {
         shootingMotor = hardwareMap.get(DcMotorEx.class, "shootingMotor");
 
         shootingMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -36,6 +22,17 @@ public class Shooting {
         telemetry.addLine("Initialized shooting stuff!");
         telemetry.update();
     }
+        
+    
+    private DcMotorEx shootingMotor;
+
+    // Random Constants
+    private static class constants {
+        static final double idleRPM = 0;
+        static final double shootingMotorCPR = 28;
+    }
+
+    private boolean isShooting = false;
 
     private void whileShooting() {
         isShooting = true;
