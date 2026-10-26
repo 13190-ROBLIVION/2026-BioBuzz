@@ -15,7 +15,7 @@ public class Feeder {
     /**
      * Intake Motor Initialization
      */
-    public void initIntake() {
+    public void initFeeder() {
         feederMotor = hardwareMap.get(DcMotor.class, "feederMotor");
 
         feederMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -27,19 +27,27 @@ public class Feeder {
         telemetry.update();
     }
 
-    public void feedOnce() {
+    public void startFeeder(double spd) {
+        feederMotor.setPower(spd);
+        telemetry.addData("Set feeder speed to: ",spd);
+    }
+
+    public void feedOnce(double spd) {
         if (feedingCycleRunning) {
             telemetry.addLine("[!] feeding cycle already running");
         }
         feedingCycleRunning=true;
+        startFeeder(spd);
         ElapsedTime timer = new ElapsedTime();
         timer.reset();
 
         while (feedTimeMillis >= timer.milliseconds()) {
             linearOpMode.idle();
         }
+        stopFeeder();
         feedingCycleRunning=false;
     }
+
 
     public void stopFeeder() {
         feederMotor.setPower(0);
