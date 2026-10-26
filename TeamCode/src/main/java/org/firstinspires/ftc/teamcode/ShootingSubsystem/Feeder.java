@@ -10,6 +10,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 public class Feeder {
     DcMotor feederMotor;
     private boolean feedingCycleRunning;
+    private final int feedTimeMillis=1000;
 
     /**
      * Intake Motor Initialization
@@ -33,7 +34,12 @@ public class Feeder {
             return;
         }
         feedingCycleRunning=true;
+        ElapsedTime timer = new ElapsedTime();
+        timer.reset();
 
+        while (feedTimeMillis >= timer.milliseconds()) {
+            linearOpMode.idle();
+        }
         feedingCycleRunning=false;
     }
 
