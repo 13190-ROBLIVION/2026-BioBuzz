@@ -28,10 +28,9 @@ public class Feeder {
 
     public void feedOnce() {
         if (feedingCycleRunning) {
-            telemetry.addLine("[!] feeding cycle already running!");
+            telemetry.addLine("")
         }
         feedingCycleRunning=true;
-        feedingCycleRunning=false;
     }
 
     public void stopFeeder() {
