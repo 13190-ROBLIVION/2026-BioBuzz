@@ -30,6 +30,8 @@ public class AutoTest extends LinearOpMode {
         backLeftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         backRightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
+
+
         telemetry.addLine("Time Based Auto Ready");
         telemetry.update();
 
