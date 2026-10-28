@@ -128,4 +128,6 @@ public class Shooting {
 
     private double RPMtoTPS(double RPM, double countsPerRev) { return ((RPM/60) * countsPerRev); }
     private double TPStoRPM(double TPS, double countsPerRev) { return ((TPS / countsPerRev) * 60); }
+
+    public boolean isShootingReady() { return true; }
 }
