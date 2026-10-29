@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package Teleop;
 
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -39,7 +39,18 @@ public class otosLocalizer extends LinearOpMode {
         otos.setLinearUnit(DistanceUnit.INCH);
         otos.setAngularUnit(AngleUnit.DEGREES);
         otos.setOffset(new SparkFunOTOS.Pose2D(0,0,0));
-        otos.calibrateImu();
+        boolean calibrationSuccessful = otos.calibrateImu();
+
+        telemetry.addData(
+                "OTOS calibration", calibrationSuccessful ? "success" : "failed");
+        telemetry.update();
+        if (!calibrationSuccessful) {
+            telemetry.addLine("Check OTOS setup and retry otos calibration");
+            telemetry.update();
+
+            requestOpModeStop();
+            return;
+        }
         otos.resetTracking();
 
         imu = hardwareMap.get(IMU.class, "imu");
@@ -89,14 +100,12 @@ public class otosLocalizer extends LinearOpMode {
         imu.resetYaw();
 
         while (opModeIsActive()) {
-
+            SparkFunOTOS.Pose2D pose = otos.getPosition();
             boolean optionsPressed = gamepad1.options;
             if (optionsPressed && !previousOptions) {
-                headingOffset = otos.getPosition().h;
+                headingOffset = pose.h;
             }
             previousOptions = optionsPressed;
-
-            SparkFunOTOS.Pose2D pose = otos.getPosition();
 
             double y = -gamepad1.left_stick_y;
             double x = gamepad1.left_stick_x;
@@ -126,11 +135,13 @@ public class otosLocalizer extends LinearOpMode {
 
             double xPosition = pose.x;
             double yPosition = pose.y;
-            double heading = Math.toRadians(pose.h);
+            double headingDegrees = normalizeDegrees(pose.h - headingOffset);
+            double heading = Math.toRadians(headingDegrees);
 
             telemetry.addData("X (in): ", xPosition);
             telemetry.addData("Y (in): ", yPosition);
-            telemetry.addData("Heading (deg): ", pose.h);
+            telemetry.addData("Raw Heading (deg): ", pose.h);
+            telemetry.addData("Drive Heading (deg): ", headingDegrees);
 
             double botHeading = heading;
             double rotX = x*Math.cos(-botHeading) - y*Math.sin(-botHeading);
@@ -170,7 +181,7 @@ public class otosLocalizer extends LinearOpMode {
             backLeftMotor.setPower(backLeftPower);
             backRightMotor.setPower(backRightPower);
 
-            double headingDegrees =
+            /*double headingDegrees =
                     imu.getRobotYawPitchRollAngles()
                             .getYaw(AngleUnit.DEGREES);
 
@@ -180,6 +191,7 @@ public class otosLocalizer extends LinearOpMode {
                     "%.2f degrees",
                     headingDegrees
             );
+            */
 
             telemetry.addLine();
             telemetry.addLine(" ENCODERS ");
@@ -264,5 +276,17 @@ public class otosLocalizer extends LinearOpMode {
 
             telemetry.update();
         }
+    }
+
+    private double normalizeDegrees(double angle) {
+        while (angle>180) {
+            angle -= 360;
+        }
+
+        while (angle <= -180) {
+            angle += 360;
+        }
+
+        return angle;
     }
 }
