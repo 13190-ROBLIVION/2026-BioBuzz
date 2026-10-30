@@ -4,8 +4,8 @@
 
 class Calculations {
     public:
-        double RPMtoTPS(double RPM, double countsPerRev) { return ((RPM/60) * countsPerRev); }
-        double TPStoRPM(double TPS, double countsPerRev) { return ((TPS / countsPerRev) * 60); }
+        static double RPMtoTPS(double RPM, double countsPerRev) { return ((RPM/60) * countsPerRev); }
+        static double TPStoRPM(double TPS, double countsPerRev) { return ((TPS / countsPerRev) * 60); }
 };
 
 
