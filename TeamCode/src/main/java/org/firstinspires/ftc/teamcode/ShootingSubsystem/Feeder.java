@@ -10,6 +10,9 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 public class Feeder {
     DcMotor feederMotor;
     private boolean feedingCycleRunning;
+
+    public double ticksPer435Revolution = 383.6;
+    private Shooting shooting = new Shooting();
     private final int feedTimeMillis=1000;
 
     /**
@@ -27,14 +30,27 @@ public class Feeder {
         telemetry.update();
     }
 
+
+
     public void startFeeder(double spd) {
         feederMotor.setPower(spd);
         telemetry.addData("Set feeder speed to: ",spd);
     }
 
-    public void feedOnce(double spd) {
+    public void feedOnce(double spd, boolean auto) {
         if (feedingCycleRunning) {
             telemetry.addLine("[!] feeding cycle already running");
+            return;
+        }
+        if (auto) {
+            if (!shooting.isShootingReady()) {
+                telemetry.addLine("[!] shooting not ready!");
+                return;
+            }
+            if (400 > shooting.TPStoRPM(shooting.getShootingMotorVelocity(), ticksPer435Revolution)) {
+                telemetry.addLine("[!] shooting motor not reached max speed yet");
+                return;
+            }
         }
         feedingCycleRunning=true;
         startFeeder(spd);
@@ -47,7 +63,6 @@ public class Feeder {
         stopFeeder();
         feedingCycleRunning=false;
     }
-
 
     public void stopFeeder() {
         feederMotor.setPower(0);
