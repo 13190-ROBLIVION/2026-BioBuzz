@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 
 @TeleOp
 public class intakeTets extends LinearOpMode {
+
     private DcMotor intakeMotor1;
     private DcMotor intakeMotor2;
 
