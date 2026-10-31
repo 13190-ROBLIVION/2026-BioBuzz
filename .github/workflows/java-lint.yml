@@ -1,0 +1,74 @@
+name: Java Lint
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: java-lint-${{ github.event.pull_request.number || github.ref_name }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Download Checkstyle
+        run: |
+          curl -sSfL -o /tmp/checkstyle.jar \
+            https://github.com/checkstyle/checkstyle/releases/download/checkstyle-10.20.2/checkstyle-10.20.2-all.jar
+
+      # Only lints TeamCode — FtcRobotController is upstream sample code.
+      # Warnings exit 0, errors exit 1; `|| true` keeps the XML report either way.
+      - name: Run Checkstyle
+        run: |
+          git ls-files '*.java' | grep '^TeamCode/' > /tmp/java-files.txt
+          java -jar /tmp/checkstyle.jar \
+            -c config/checkstyle/checkstyle.xml \
+            -f xml -o /tmp/checkstyle-result.xml \
+            $(cat /tmp/java-files.txt) || true
+
+      # severity="error" (real bug patterns) fails the PR.
+      # severity="warning" (naming/imports) is shown but never fails.
+      - name: Fail on errors, summarize
+        run: |
+          ERRORS=$(awk '/severity="error"/{n++} END{print n+0}' /tmp/checkstyle-result.xml)
+          WARNINGS=$(awk '/severity="warning"/{n++} END{print n+0}' /tmp/checkstyle-result.xml)
+
+          {
+            echo "## Java Lint"
+            echo ""
+            echo "| severity | count | fails PR? |"
+            echo "| --- | --- | --- |"
+            echo "| error | $ERRORS | yes |"
+            echo "| warning | $WARNINGS | no |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$ERRORS" -gt 0 ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            grep 'severity="error"' /tmp/checkstyle-result.xml >> "$GITHUB_STEP_SUMMARY" || true
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "Checkstyle found $ERRORS error(s)"
+            exit 1
+          fi
+
+      - name: Upload full report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkstyle-report
+          path: /tmp/checkstyle-result.xml
+          if-no-files-found: ignore
