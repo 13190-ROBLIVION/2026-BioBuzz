@@ -28,7 +28,7 @@ android {
     externalNativeBuild {
         cmake {
             path file('src/main/cpp/CMakeLists.txt')
-            version '3.22.1'
+            version = '3.22.1'
         }
     }
 
@@ -36,9 +36,27 @@ android {
         jniLibs {
             pickFirsts += ['**/*.so']
         }
-        jniLibs.useLegacyPackaging true
+        jniLibs.useLegacyPackaging = true
     }
-    compileSdkMinor 0
+    compileSdkMinor = 0
+
+    // Pure-Java module: disable AGP 9's built-in Kotlin support (the supported
+    // per-module opt-out) so the Kotlin Gradle plugin isn't applied at all.
+    // This avoids KGP-internal Gradle deprecation warnings (Configuration.setVisible)
+    // and skips unneeded Kotlin compile setup. Remove this line if Kotlin sources
+    // are ever added to this module.
+    enableKotlin = false
+}
+
+// Compile with a JDK 17 toolchain instead of whatever JDK runs Gradle
+// (AGP's recommended fix for the "source/target 8 is obsolete" warnings on
+// modern JDKs). Source/target stay at Java 8 - the level the FTC SDK supports -
+// while javac 17 doesn't emit the obsolete-option warnings that javac 21+ does.
+// The foojay resolver in settings.gradle auto-provisions JDK 17 if needed.
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
 }
 
 dependencies {

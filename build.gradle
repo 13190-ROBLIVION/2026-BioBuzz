@@ -9,6 +9,13 @@ buildscript {
         mavenCentral()
         google()
     }
+    dependencies {
+        // AGP 9.5 bundles Kotlin Gradle plugin 2.2.10, whose base plugin calls
+        // the Configuration.setVisible() API deprecated for removal in Gradle 11.
+        // Pinning a newer KGP (the upgrade path AGP documents) removes that
+        // deprecation warning. Drop this pin when AGP bundles a KGP >= this.
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.21'
+    }
 }
 
 plugins {
