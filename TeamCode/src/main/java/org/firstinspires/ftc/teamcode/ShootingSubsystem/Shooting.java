@@ -26,6 +26,8 @@ public class Shooting {
         // TODO: Reverse it if needed
         // shootingMotor.setDirection(DcMotor.Direction.REVERSE);
 
+        shootingMotor.setVelocity(RPMtoTPS(constants.idleRPM, constants.shootingMotorCPR));
+
         telemetry.addLine("Initialized shooting stuff!");
         telemetry.update();
     }
@@ -82,7 +84,7 @@ public class Shooting {
             linearOpMode.idle(); // I think this idles it.
         }
 
-        stopShootingMotors();
+        resetShootingMotors();
 
         return;
     }
@@ -107,7 +109,7 @@ public class Shooting {
             linearOpMode.idle(); // I think this idles it.
         }
 
-        stopShootingMotors();
+        resetShootingMotors();
 
         return;
     }
@@ -125,12 +127,21 @@ public class Shooting {
         return;
     }
 
-    // Optional: stop the motors
-    public void stopShootingMotors() {
-        shootingMotor.setPower(0);
+    // Reset the motors back to idle
+    public void resetShootingMotors() {
         shootingMotor.setVelocity(constants.idleRPM);
 
-        telemetry.addData("Stopped motor. Speed is now: ", shootingMotor.getPower());
+        telemetry.addData("Reset motor. Speed is now: ", TPStoRPM(shootingMotor.getVelocity(), constants.shootingMotorCPR));
+        telemetry.update();
+
+        return;
+    }
+
+    public void stopShootingMotors() {
+        shootingMotor.setPower(0);
+        shootingMotor.setVelocity(0);
+
+        telemetry.addData("Stopped motor. Speed is now: ", TPStoRPM(shootingMotor.getVelocity(), constants.shootingMotorCPR));
         telemetry.update();
 
         return;

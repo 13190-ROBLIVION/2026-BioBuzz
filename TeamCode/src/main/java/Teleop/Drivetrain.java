@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package Teleop;
 
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -9,7 +9,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 @TeleOp
 public class Drivetrain extends LinearOpMode {
-
     private DcMotor frontLeftMotor;
     private DcMotor frontRightMotor;
     private DcMotor backLeftMotor;
@@ -36,27 +35,18 @@ public class Drivetrain extends LinearOpMode {
         backRightMotor.setDirection(DcMotor.Direction.REVERSE);
 
         frontLeftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
         frontRightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
         backLeftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
         backRightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         frontLeftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-
         frontRightMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-
         backLeftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-
         backRightMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
         frontLeftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
         frontRightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
         backLeftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
         backRightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         RevHubOrientationOnRobot orientation = new RevHubOrientationOnRobot(
