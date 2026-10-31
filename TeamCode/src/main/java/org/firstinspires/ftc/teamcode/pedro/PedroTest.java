@@ -6,7 +6,6 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 @Autonomous(name = "BioBuzz Pedro Test")
 public class PedroTest extends OpMode {
-
     private Follower follower;
 
     private int testNumber = 1;
