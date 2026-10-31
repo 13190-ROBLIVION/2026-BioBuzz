@@ -9,6 +9,12 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 public class Shooting {
+    // Load libftcrobotcontroller.so (built from TeamCode/src/main/cpp via CMake/NDK).
+    // Runs once, when the Shooting class is first loaded.
+    static {
+        System.loadLibrary("ftcrobotcontroller");
+    }
+
     public Shooting() {
         shootingMotor = hardwareMap.get(DcMotorEx.class, "shootingMotor");
 
@@ -22,8 +28,7 @@ public class Shooting {
         telemetry.addLine("Initialized shooting stuff!");
         telemetry.update();
     }
-        
-    
+
     private DcMotorEx shootingMotor;
 
     // Random Constants
@@ -37,7 +42,7 @@ public class Shooting {
     private void whileShooting() {
         isShooting = true;
 
-        while(isShooting) {
+        while (isShooting) {
             telemetry.addData("Current speed is: ", TPStoRPM(shootingMotor.getVelocity(), constants.shootingMotorCPR));
             linearOpMode.idle();
         }
@@ -126,8 +131,9 @@ public class Shooting {
         return;
     }
 
-    public native double RPMtoTPS(double RPM, double countsPerRev);
-    public native double TPStoRPM(double TPS, double countsPerRev);
+    // Implemented in C++ (src/main/cpp), exposed through the JNI bridge in ftcrobotcontroller.cpp.
+    private static native double RPMtoTPS(double RPM, double countsPerRev);
+    private static native double TPStoRPM(double TPS, double countsPerRev);
 
     public boolean isShootingReady() { return true; }
 }
