@@ -1,4 +1,3 @@
-
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -15,7 +14,6 @@ public class robotcentricdrivetrain extends LinearOpMode {
 
     @Override
     public void runOpMode() {
-
         frontLeftMotor = hardwareMap.get(DcMotor.class, "frontLeftMotor");
         frontRightMotor = hardwareMap.get(DcMotor.class, "frontRightMotor");
         backLeftMotor = hardwareMap.get(DcMotor.class, "backLeftMotor");
@@ -28,15 +26,11 @@ public class robotcentricdrivetrain extends LinearOpMode {
         waitForStart();
 
         while (opModeIsActive()) {
-
             double y = -gamepad1.left_stick_y;
             double x = gamepad1.left_stick_x * 1.1;
             double rx = -gamepad1.right_stick_x;
 
-            double cap = Math.max(
-                    Math.abs(y) + Math.abs(x) + Math.abs(rx),
-                    1
-            );
+            double cap = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
 
             double frontLeftPower = (y + x + rx) / cap;
             double backLeftPower = (y - x + rx) / cap;

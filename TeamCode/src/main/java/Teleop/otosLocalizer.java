@@ -1,17 +1,17 @@
 package Teleop;
 
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
+import com.qualcomm.hardware.sparkfun.SparkFunOTOS;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.IMU;
-import com.qualcomm.hardware.sparkfun.SparkFunOTOS;
-
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 @TeleOp
 public class otosLocalizer extends LinearOpMode {
+
     private DcMotor frontLeftMotor;
     private DcMotor frontRightMotor;
     private DcMotor backLeftMotor;
@@ -26,10 +26,8 @@ public class otosLocalizer extends LinearOpMode {
 
     private boolean previousOptions = false;
 
-
     @Override
     public void runOpMode() {
-
         frontLeftMotor = hardwareMap.get(DcMotor.class, "frontLeftMotor");
         frontRightMotor = hardwareMap.get(DcMotor.class, "frontRightMotor");
         backLeftMotor = hardwareMap.get(DcMotor.class, "backLeftMotor");
@@ -38,11 +36,10 @@ public class otosLocalizer extends LinearOpMode {
 
         otos.setLinearUnit(DistanceUnit.INCH);
         otos.setAngularUnit(AngleUnit.DEGREES);
-        otos.setOffset(new SparkFunOTOS.Pose2D(0,0,0));
+        otos.setOffset(new SparkFunOTOS.Pose2D(0, 0, 0));
         boolean calibrationSuccessful = otos.calibrateImu();
 
-        telemetry.addData(
-                "OTOS calibration", calibrationSuccessful ? "success" : "failed");
+        telemetry.addData("OTOS calibration", calibrationSuccessful ? "success" : "failed");
         telemetry.update();
         if (!calibrationSuccessful) {
             telemetry.addLine("Check OTOS setup and retry otos calibration");
@@ -76,11 +73,10 @@ public class otosLocalizer extends LinearOpMode {
         backLeftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         backRightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        RevHubOrientationOnRobot orientation =
-                new RevHubOrientationOnRobot(
-                        RevHubOrientationOnRobot.LogoFacingDirection.UP,
-                        RevHubOrientationOnRobot.UsbFacingDirection.FORWARD
-                );
+        RevHubOrientationOnRobot orientation = new RevHubOrientationOnRobot(
+            RevHubOrientationOnRobot.LogoFacingDirection.UP,
+            RevHubOrientationOnRobot.UsbFacingDirection.FORWARD
+        );
 
         imu.initialize(new IMU.Parameters(orientation));
 
@@ -144,28 +140,18 @@ public class otosLocalizer extends LinearOpMode {
             telemetry.addData("Drive Heading (deg): ", headingDegrees);
 
             double botHeading = heading;
-            double rotX = x*Math.cos(-botHeading) - y*Math.sin(-botHeading);
-            double rotY = x*Math.sin(-botHeading) + y*Math.cos(-botHeading);
+            double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
+            double rotY = x * Math.sin(-botHeading) + y * Math.cos(-botHeading);
 
-            double denominator =
-                    Math.max(
-                            Math.abs(rotY)
-                                    + Math.abs(rotX)
-                                    + Math.abs(rx),
-                            1.0
-                    );
+            double denominator = Math.max(Math.abs(rotY) + Math.abs(rotX) + Math.abs(rx), 1.0);
 
-            double frontLeftPower =
-                    (rotY + rotX + rx) / denominator;
+            double frontLeftPower = (rotY + rotX + rx) / denominator;
 
-            double backLeftPower =
-                    (rotY - rotX + rx) / denominator;
+            double backLeftPower = (rotY - rotX + rx) / denominator;
 
-            double frontRightPower =
-                    (rotY - rotX - rx) / denominator;
+            double frontRightPower = (rotY - rotX - rx) / denominator;
 
-            double backRightPower =
-                    (rotY + rotX - rx) / denominator;
+            double backRightPower = (rotY + rotX - rx) / denominator;
 
             boolean slowMode = gamepad1.left_bumper;
 
@@ -196,81 +182,38 @@ public class otosLocalizer extends LinearOpMode {
             telemetry.addLine();
             telemetry.addLine(" ENCODERS ");
 
-            telemetry.addData(
-                    "Front Left",
-                    frontLeftMotor.getCurrentPosition()
-            );
+            telemetry.addData("Front Left", frontLeftMotor.getCurrentPosition());
 
-            telemetry.addData(
-                    "Front Right",
-                    frontRightMotor.getCurrentPosition()
-            );
+            telemetry.addData("Front Right", frontRightMotor.getCurrentPosition());
 
-            telemetry.addData(
-                    "Back Left",
-                    backLeftMotor.getCurrentPosition()
-            );
+            telemetry.addData("Back Left", backLeftMotor.getCurrentPosition());
 
-            telemetry.addData(
-                    "Back Right",
-                    backRightMotor.getCurrentPosition()
-            );
+            telemetry.addData("Back Right", backRightMotor.getCurrentPosition());
 
             telemetry.addLine();
             telemetry.addLine("===== JOYSTICKS =====");
 
-            telemetry.addData(
-                    "Forward / Back",
-                    "%.2f",
-                    y
-            );
+            telemetry.addData("Forward / Back", "%.2f", y);
 
-            telemetry.addData(
-                    "Strafe",
-                    "%.2f",
-                    x
-            );
+            telemetry.addData("Strafe", "%.2f", x);
 
-            telemetry.addData(
-                    "Rotation",
-                    "%.2f",
-                    rx
-            );
+            telemetry.addData("Rotation", "%.2f", rx);
 
             telemetry.addLine();
             telemetry.addLine("===== MOTOR POWER =====");
 
-            telemetry.addData(
-                    "FL Power",
-                    "%.2f",
-                    frontLeftPower
-            );
+            telemetry.addData("FL Power", "%.2f", frontLeftPower);
 
-            telemetry.addData(
-                    "FR Power",
-                    "%.2f",
-                    frontRightPower
-            );
+            telemetry.addData("FR Power", "%.2f", frontRightPower);
 
-            telemetry.addData(
-                    "BL Power",
-                    "%.2f",
-                    backLeftPower
-            );
+            telemetry.addData("BL Power", "%.2f", backLeftPower);
 
-            telemetry.addData(
-                    "BR Power",
-                    "%.2f",
-                    backRightPower
-            );
+            telemetry.addData("BR Power", "%.2f", backRightPower);
 
             telemetry.addLine();
             telemetry.addLine("===== STATUS =====");
 
-            telemetry.addData(
-                    "Slow Mode",
-                    slowMode ? "ON" : "OFF"
-            );
+            telemetry.addData("Slow Mode", slowMode ? "ON" : "OFF");
 
             telemetry.addLine("OPTIONS = Reset Heading");
 
@@ -279,7 +222,7 @@ public class otosLocalizer extends LinearOpMode {
     }
 
     private double normalizeDegrees(double angle) {
-        while (angle>180) {
+        while (angle > 180) {
             angle -= 360;
         }
 

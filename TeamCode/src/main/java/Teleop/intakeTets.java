@@ -1,4 +1,3 @@
-
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -13,7 +12,6 @@ public class intakeTets extends LinearOpMode {
 
     @Override
     public void runOpMode() {
-
         intakeMotor1 = hardwareMap.get(DcMotor.class, "intakeMotor1");
         intakeMotor2 = hardwareMap.get(DcMotor.class, "intakeMotor2");
 
@@ -29,21 +27,17 @@ public class intakeTets extends LinearOpMode {
         waitForStart();
 
         while (opModeIsActive()) {
-
             double power1 = 0;
             double power2 = 0;
 
             if (gamepad1.a) {
                 power1 = 0.4;
                 power2 = 0.4;
-
             } else if (gamepad1.b) {
                 power1 = -0.4;
                 power2 = -0.4;
-
             } else if (gamepad1.x) {
                 power1 = 0.4;
-
             } else if (gamepad1.y) {
                 power2 = 0.4;
             }
@@ -54,15 +48,9 @@ public class intakeTets extends LinearOpMode {
             telemetry.addData("Motor 1 Power", power1);
             telemetry.addData("Motor 2 Power", power2);
 
-            telemetry.addData(
-                    "Motor 1 Encoder",
-                    intakeMotor1.getCurrentPosition()
-            );
+            telemetry.addData("Motor 1 Encoder", intakeMotor1.getCurrentPosition());
 
-            telemetry.addData(
-                    "Motor 2 Encoder",
-                    intakeMotor2.getCurrentPosition()
-            );
+            telemetry.addData("Motor 2 Encoder", intakeMotor2.getCurrentPosition());
 
             telemetry.update();
         }
