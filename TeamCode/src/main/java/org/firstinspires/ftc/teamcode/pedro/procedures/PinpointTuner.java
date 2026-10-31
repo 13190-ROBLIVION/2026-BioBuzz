@@ -11,7 +11,6 @@ import java.util.*;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 public class PinpointTuner extends Procedure {
-
     enum PodType {
         SWING_ARM,
         FOUR_BAR,
@@ -126,7 +125,6 @@ public class PinpointTuner extends Procedure {
 }
 
 class PinpointCustomPodScalar extends TuningOpMode<Double> {
-
     String name;
     double distance;
 
@@ -167,7 +165,6 @@ class PinpointCustomPodScalar extends TuningOpMode<Double> {
 }
 
 class PinpointForwardDirection extends TuningOpMode<Boolean> {
-
     String name;
     PinpointTuner.PodType podType;
     OptionalDouble customPodScalar;
@@ -225,7 +222,6 @@ class PinpointForwardDirection extends TuningOpMode<Boolean> {
 }
 
 class PinpointStrafeDirection extends TuningOpMode<Boolean> {
-
     String name;
     PinpointTuner.PodType podType;
     OptionalDouble customPodScalar;
@@ -282,7 +278,6 @@ class PinpointStrafeDirection extends TuningOpMode<Boolean> {
 }
 
 class PinpointOffsets extends TuningOpMode<List<Double>> {
-
     String name;
     PinpointTuner.PodType podType;
     OptionalDouble customPodScalar = OptionalDouble.empty();

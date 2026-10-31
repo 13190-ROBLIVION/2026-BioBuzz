@@ -12,7 +12,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 @Autonomous
 public class TimeBasedAuto extends LinearOpMode {
-
     private DcMotor frontLeftMotor, frontRightMotor, backLeftMotor, backRightMotor;
 
     private DcMotor transferMotor, intakeMotor;

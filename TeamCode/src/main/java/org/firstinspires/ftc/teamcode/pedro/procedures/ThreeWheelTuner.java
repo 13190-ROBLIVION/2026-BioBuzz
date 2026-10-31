@@ -14,7 +14,6 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import java.util.List;
 
 public class ThreeWheelTuner extends Procedure {
-
     private static String leftEncoderName = "lf";
     private static String rightEncoderName = "rr";
     private static String strafeEncoderName = "lr";
@@ -225,7 +224,6 @@ public class ThreeWheelTuner extends Procedure {
 }
 
 class ThreeWheelResolution extends TuningOpMode<List<Double>> {
-
     String pod;
     double distance;
 
@@ -274,7 +272,6 @@ class ThreeWheelResolution extends TuningOpMode<List<Double>> {
 }
 
 class ThreeWheelOffsets extends TuningOpMode<List<Double>> {
-
     boolean left;
     double forward;
     double strafe;
@@ -333,7 +330,6 @@ class ThreeWheelOffsets extends TuningOpMode<List<Double>> {
 }
 
 class ThreeWheelTurn extends TuningOpMode<Double> {
-
     ThreeWheelConfig config;
 
     ThreeWheelTurn(ThreeWheelConfig config) {

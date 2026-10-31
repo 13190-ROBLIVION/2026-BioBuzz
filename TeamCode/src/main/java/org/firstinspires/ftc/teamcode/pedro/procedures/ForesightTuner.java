@@ -19,7 +19,6 @@ import java.util.*;
 import java.util.function.Function;
 
 public class ForesightTuner extends Procedure {
-
     Function<HardwareMap, Localizer> localizerFunction;
     Function<HardwareMap, Drivetrain> drivetrainFunction;
 
@@ -238,7 +237,6 @@ public class ForesightTuner extends Procedure {
 }
 
 class ForwardVelocity extends TuningOpMode<Double> {
-
     Function<HardwareMap, Localizer> localizerFunction;
     Function<HardwareMap, Drivetrain> drivetrainFunction;
     double distance;
@@ -307,7 +305,6 @@ class ForwardVelocity extends TuningOpMode<Double> {
 }
 
 class StrafeVelocity extends TuningOpMode<Double> {
-
     Function<HardwareMap, Localizer> localizerFunction;
     Function<HardwareMap, Drivetrain> drivetrainFunction;
     double distance;
@@ -376,7 +373,6 @@ class StrafeVelocity extends TuningOpMode<Double> {
 }
 
 class ForwardDeceleration extends TuningOpMode<Double> {
-
     Function<HardwareMap, Localizer> localizerFunction;
     Function<HardwareMap, Drivetrain> drivetrainFunction;
     double velocity;
@@ -481,7 +477,6 @@ class ForwardDeceleration extends TuningOpMode<Double> {
 }
 
 class StrafeDeceleration extends TuningOpMode<Double> {
-
     Function<HardwareMap, Localizer> localizerFunction;
     Function<HardwareMap, Drivetrain> drivetrainFunction;
     double velocity;
@@ -586,7 +581,6 @@ class StrafeDeceleration extends TuningOpMode<Double> {
 }
 
 class HeadingBraking extends TuningOpMode<List<Double>> {
-
     Function<HardwareMap, Localizer> localizerFunction;
     Function<HardwareMap, Drivetrain> drivetrainFunction;
 
@@ -735,7 +729,6 @@ class HeadingBraking extends TuningOpMode<List<Double>> {
 }
 
 class HeadingTuner extends TuningOpMode<Double> {
-
     Function<HardwareMap, Localizer> localizerFunction;
     Function<HardwareMap, Drivetrain> drivetrainFunction;
 
@@ -860,7 +853,6 @@ class HeadingTuner extends TuningOpMode<Double> {
 }
 
 class ForwardBraking extends TuningOpMode<List<Double>> {
-
     Function<HardwareMap, Localizer> localizerFunction;
     Function<HardwareMap, Drivetrain> drivetrainFunction;
     private final double headingLinear;
@@ -1061,7 +1053,6 @@ class ForwardBraking extends TuningOpMode<List<Double>> {
 }
 
 class StrafeBraking extends TuningOpMode<List<Double>> {
-
     Function<HardwareMap, Localizer> localizerFunction;
     Function<HardwareMap, Drivetrain> drivetrainFunction;
     private final double headingLinear;
@@ -1262,7 +1253,6 @@ class StrafeBraking extends TuningOpMode<List<Double>> {
 }
 
 class ForwardTranslational extends TuningOpMode<List<Double>> {
-
     Function<HardwareMap, Localizer> localizerFunction;
     Function<HardwareMap, Drivetrain> drivetrainFunction;
 
@@ -1394,7 +1384,6 @@ class ForwardTranslational extends TuningOpMode<List<Double>> {
 }
 
 class StrafeTranslational extends TuningOpMode<List<Double>> {
-
     Function<HardwareMap, Localizer> localizerFunction;
     Function<HardwareMap, Drivetrain> drivetrainFunction;
     public static double ALPHA_LARGE = 10.2;

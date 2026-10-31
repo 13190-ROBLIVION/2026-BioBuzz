@@ -12,7 +12,6 @@ import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import java.util.List;
 
 public class TwoWheelTuner extends Procedure {
-
     public TwoWheelTuner() {
         super("Two Wheel Tuner", "A procedure for tuning the Two Wheel localizer.");
     }
@@ -164,7 +163,6 @@ public class TwoWheelTuner extends Procedure {
 }
 
 class TwoWheelSetup {
-
     String forwardPodName;
     String strafePodName;
     String imuName;
@@ -187,7 +185,6 @@ class TwoWheelSetup {
 }
 
 class TwoWheelForwardResolution extends TuningOpMode<Double> {
-
     TwoWheelSetup values;
     double distance;
 
@@ -226,7 +223,6 @@ class TwoWheelForwardResolution extends TuningOpMode<Double> {
 }
 
 class TwoWheelStrafeResolution extends TuningOpMode<Double> {
-
     TwoWheelSetup values;
     double distance;
 
@@ -262,7 +258,6 @@ class TwoWheelStrafeResolution extends TuningOpMode<Double> {
 }
 
 class TwoWheelForwardDirection extends TuningOpMode<Boolean> {
-
     TwoWheelSetup values;
     double forwardTicksToInches;
     double strafeTicksToInches;
@@ -304,7 +299,6 @@ class TwoWheelForwardDirection extends TuningOpMode<Boolean> {
 }
 
 class TwoWheelStrafeDirection extends TuningOpMode<Boolean> {
-
     TwoWheelSetup values;
     double forwardTicksToInches;
     double strafeTicksToInches;
@@ -345,7 +339,6 @@ class TwoWheelStrafeDirection extends TuningOpMode<Boolean> {
 }
 
 class TwoWheelOffsets extends TuningOpMode<List<Double>> {
-
     TwoWheelSetup values;
     double forwardTicksToInches;
     double strafeTicksToInches;

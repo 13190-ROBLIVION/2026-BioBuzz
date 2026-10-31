@@ -13,7 +13,6 @@ enum Direction {
 }
 
 public class MecanumTuner extends Procedure {
-
     public MecanumTuner() {
         super("Mecanum Tuner", "A procedure to find the directions of mecanum wheels.");
     }
@@ -104,7 +103,6 @@ public class MecanumTuner extends Procedure {
 }
 
 class SpinMotor extends TuningOpMode<Void> {
-
     private final String name;
 
     public SpinMotor(String displayName, String hardwareName) {

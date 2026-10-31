@@ -22,7 +22,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class Tests extends Procedure {
-
     enum Test {
         @DisplayName("Hold Test")
         HOLD,
@@ -136,7 +135,6 @@ public class Tests extends Procedure {
 }
 
 class TestsHold extends TuningOpMode<Boolean> {
-
     Function<HardwareMap, Follower> followerFunction;
 
     public TestsHold(Function<HardwareMap, Follower> followerFunction) {
@@ -161,7 +159,6 @@ class TestsHold extends TuningOpMode<Boolean> {
 }
 
 class TestsLine extends TuningOpMode<Boolean> {
-
     Function<HardwareMap, Follower> followerFunction;
     double distance;
 
@@ -203,7 +200,6 @@ class TestsLine extends TuningOpMode<Boolean> {
 }
 
 class TestsCurve extends TuningOpMode<Boolean> {
-
     Function<HardwareMap, Follower> followerFunction;
     double distance;
 
@@ -245,7 +241,6 @@ class TestsCurve extends TuningOpMode<Boolean> {
 }
 
 class TestsInterpolation extends TuningOpMode<Boolean> {
-
     Function<HardwareMap, Follower> followerFunction;
     double distance;
 
@@ -295,7 +290,6 @@ class TestsInterpolation extends TuningOpMode<Boolean> {
 }
 
 class TestsLocalization extends TuningOpMode<Boolean> {
-
     Function<HardwareMap, Drivetrain> drivetrainFunction;
     Function<HardwareMap, Localizer> localizerFunction;
 
@@ -333,7 +327,6 @@ class TestsLocalization extends TuningOpMode<Boolean> {
 }
 
 class TestsOdometry extends TuningOpMode<Boolean> {
-
     Function<HardwareMap, Drivetrain> drivetrainFunction;
     Function<HardwareMap, Localizer> localizerFunction;
 
@@ -461,7 +454,6 @@ class TestsOdometry extends TuningOpMode<Boolean> {
 }
 
 class TestsDriving extends TuningOpMode<Boolean> {
-
     Function<HardwareMap, Drivetrain> drivetrainFunction;
 
     public TestsDriving(Function<HardwareMap, Drivetrain> drivetrainFunction) {
@@ -484,7 +476,6 @@ class TestsDriving extends TuningOpMode<Boolean> {
 }
 
 class TestsPose extends TuningOpMode<Boolean> {
-
     Function<HardwareMap, Localizer> localizerFunction;
 
     public TestsPose(Function<HardwareMap, Localizer> localizerFunction) {

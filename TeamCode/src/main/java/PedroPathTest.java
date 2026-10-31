@@ -13,7 +13,6 @@ import org.firstinspires.ftc.teamcode.pedro.Constants;
 // Register the autonomous program
 @Autonomous(name = "Pedro Path Test", group = "Pedro")
 public class PedroPathTest extends OpMode {
-
     // Controls path following
     private Follower follower;
 

@@ -11,7 +11,6 @@ import java.util.List;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 public class OTOSTuner extends Procedure {
-
     public OTOSTuner() {
         super("OTOS Tuner", "A procedure for tuning the OTOS localizer.");
     }
@@ -80,7 +79,6 @@ public class OTOSTuner extends Procedure {
 }
 
 class OTOSLinearScalar extends TuningOpMode<Double> {
-
     String name;
     double distance;
 
@@ -127,7 +125,6 @@ class OTOSLinearScalar extends TuningOpMode<Double> {
 }
 
 class OTOSAngularScalar extends TuningOpMode<Double> {
-
     String name;
     int turns;
     double targetRadians;
@@ -183,7 +180,6 @@ class OTOSAngularScalar extends TuningOpMode<Double> {
 }
 
 class OTOSOffsets extends TuningOpMode<List<Double>> {
-
     String name;
     double linearScalar, angularScalar;
 

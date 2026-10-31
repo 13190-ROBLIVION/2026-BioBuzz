@@ -9,7 +9,6 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 public class Shooting {
-
     // Load libftcrobotcontroller.so (built from TeamCode/src/main/cpp via CMake/NDK).
     // Runs once, when the Shooting class is first loaded.
     static {
@@ -36,7 +35,6 @@ public class Shooting {
 
     // Random Constants
     private static class constants {
-
         static final double idleRPM = 0;
         static final double shootingMotorCPR = 28;
     }

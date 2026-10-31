@@ -12,7 +12,6 @@ import java.util.List;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 public class OctoQuadTuner extends Procedure {
-
     enum PodType {
         SWING_ARM,
         FOUR_BAR,
@@ -162,7 +161,6 @@ public class OctoQuadTuner extends Procedure {
 }
 
 class OctoQuadHeadingScalar extends TuningOpMode<Double> {
-
     String name;
     int turns;
     double totalHeading = 0;
@@ -222,7 +220,6 @@ class OctoQuadHeadingScalar extends TuningOpMode<Double> {
 }
 
 class OctoQuadCustomPodScalar extends TuningOpMode<Double> {
-
     String name;
     double distance;
     int xPodPort, yPodPort;
@@ -275,7 +272,6 @@ class OctoQuadCustomPodScalar extends TuningOpMode<Double> {
 }
 
 class OctoQuadForwardDirection extends TuningOpMode<Boolean> {
-
     String name;
     OctoQuadTuner.PodType podType;
     double customPodScalar;
@@ -335,7 +331,6 @@ class OctoQuadForwardDirection extends TuningOpMode<Boolean> {
 }
 
 class OctoQuadStrafeDirection extends TuningOpMode<Boolean> {
-
     String name;
     OctoQuadTuner.PodType podType;
     double customPodScalar;
@@ -396,7 +391,6 @@ class OctoQuadStrafeDirection extends TuningOpMode<Boolean> {
 }
 
 class OctoQuadOffsets extends TuningOpMode<List<Double>> {
-
     String name;
     OctoQuadTuner.PodType podType;
     double customPodScalar;

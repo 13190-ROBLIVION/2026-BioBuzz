@@ -6,7 +6,6 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 
 @Autonomous(name = "Time Based Auto", group = "Autonomous")
 public class AutoTest extends LinearOpMode {
-
     private DcMotor frontLeftMotor;
     private DcMotor frontRightMotor;
     private DcMotor backLeftMotor;
