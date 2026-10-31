@@ -30,29 +30,21 @@ public class AutoIMU extends LinearOpMode {
     public void runOpMode() {
 
 // Initialize drive motors
-        frontLeftMotor = hardwareMap.get(
-                DcMotor.class, "frontLeft");
+        frontLeftMotor = hardwareMap.get(DcMotor.class, "frontLeft");
 
-        frontRightMotor = hardwareMap.get(
-                DcMotor.class, "frontRight");
+        frontRightMotor = hardwareMap.get(DcMotor.class, "frontRight");
 
-        backLeftMotor = hardwareMap.get(
-                DcMotor.class, "backLeft");
+        backLeftMotor = hardwareMap.get(DcMotor.class, "backLeft");
 
-        backRightMotor = hardwareMap.get(
-                DcMotor.class, "backRight");
+        backRightMotor = hardwareMap.get(DcMotor.class, "backRight");
 
-// Set motors to stop safely
-        frontLeftMotor.setZeroPowerBehavior(
-                DcMotor.ZeroPowerBehavior.BRAKE);
-        frontRightMotor.setZeroPowerBehavior(
-                DcMotor.ZeroPowerBehavior.BRAKE);
-        backLeftMotor.setZeroPowerBehavior(
-                DcMotor.ZeroPowerBehavior.BRAKE);
-        backRightMotor.setZeroPowerBehavior(
-                DcMotor.ZeroPowerBehavior.BRAKE);
+        // Set motors to stop safely
+        frontLeftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontRightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backLeftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backRightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-// Initialize IMU
+        // Initialize IMU
         imu = hardwareMap.get(IMU.class, "imu");
 
         IMU.Parameters parameters = new IMU.Parameters(
@@ -76,14 +68,16 @@ public class AutoIMU extends LinearOpMode {
 
         imu.resetYaw();
 
+        // Who the hell put this here
+        // This code can't throw an exception, why the try block?
         try {
-// Drive forward for 1.2 seconds
+            // Drive forward for 1.2 seconds
             driveTimed(0.35, 0.0, 1200, 0);
 
-// Turn to 90 degrees
+            // Turn to 90 degrees
             turnToHeading(90);
 
-// Strafe for 0.7 seconds while holding 90 degrees
+            // Strafe for 0.7 seconds while holding 90 degrees
             driveTimed(0.0, 0.35, 700, 90);
 
         } finally {
@@ -92,31 +86,25 @@ public class AutoIMU extends LinearOpMode {
     }
 
     private double getHeading() {
-        return imu.getRobotYawPitchRollAngles()
-                .getYaw(AngleUnit.DEGREES);
+        return imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
     }
 
     private double headingError(double targetHeading) {
-        return AngleUnit.normalizeDegrees(
-                targetHeading - getHeading());
+        return AngleUnit.normalizeDegrees(targetHeading - getHeading());
     }
 
     private double clip(double value, double min, double max) {
         return Math.max(min, Math.min(max, value));
     }
 
-    private void setDrivePower(
-            double forward,
-            double strafe,
-            double turn) {
+    private void setDrivePower(double forward, double strafe, double turn) {
 
         double fl = forward + strafe + turn;
         double fr = forward - strafe - turn;
         double bl = forward - strafe + turn;
         double br = forward + strafe - turn;
 
-        double max = Math.max(
-                1.0,
+        double max = Math.max(1.0,
                 Math.max(
                         Math.max(Math.abs(fl), Math.abs(fr)),
                         Math.max(Math.abs(bl), Math.abs(br))
@@ -129,18 +117,11 @@ public class AutoIMU extends LinearOpMode {
         backRightMotor.setPower(br / max);
     }
 
-    private void driveTimed(
-            double forward,
-            double strafe,
-            long milliseconds,
-            double targetHeading) {
-
+    private void driveTimed(double forward, double strafe, long milliseconds, double targetHeading) {
         ElapsedTime timer = new ElapsedTime();
         timer.reset();
 
-        while (opModeIsActive()
-                && timer.milliseconds() < milliseconds) {
-
+        while (opModeIsActive() && timer.milliseconds() < milliseconds) {
             double error = headingError(targetHeading);
 
             double correction = clip(
@@ -163,7 +144,6 @@ public class AutoIMU extends LinearOpMode {
     }
 
     private void turnToHeading(double targetHeading) {
-
         ElapsedTime timer = new ElapsedTime();
         timer.reset();
 
@@ -181,9 +161,9 @@ public class AutoIMU extends LinearOpMode {
                     MAX_TURN_POWER
             );
 
-            double turn = -Math.signum(error) * turnPower;
+            double turnAmount = -Math.signum(error) * turnPower;
 
-            setDrivePower(0.0, 0.0, turn);
+            setDrivePower(0.0, 0.0, turnAmount);
 
             telemetry.addData("Target Heading", targetHeading);
             telemetry.addData("Actual Heading", getHeading());
@@ -203,7 +183,3 @@ public class AutoIMU extends LinearOpMode {
         backRightMotor.setPower(0);
     }
 }
-
-
-
-
