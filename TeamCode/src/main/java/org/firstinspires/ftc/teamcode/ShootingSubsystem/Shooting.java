@@ -131,7 +131,10 @@ public class Shooting {
     public void resetShootingMotors() {
         shootingMotor.setVelocity(constants.idleRPM);
 
-        telemetry.addData("Reset motor. Speed is now: ", TPStoRPM(shootingMotor.getVelocity(), constants.shootingMotorCPR));
+        telemetry.addData(
+            "Reset motor. Speed is now: ",
+            TPStoRPM(shootingMotor.getVelocity(), constants.shootingMotorCPR)
+        );
         telemetry.update();
 
         return;
@@ -141,7 +144,10 @@ public class Shooting {
         shootingMotor.setPower(0);
         shootingMotor.setVelocity(0);
 
-        telemetry.addData("Stopped motor. Speed is now: ", TPStoRPM(shootingMotor.getVelocity(), constants.shootingMotorCPR));
+        telemetry.addData(
+            "Stopped motor. Speed is now: ",
+            TPStoRPM(shootingMotor.getVelocity(), constants.shootingMotorCPR)
+        );
         telemetry.update();
 
         return;
