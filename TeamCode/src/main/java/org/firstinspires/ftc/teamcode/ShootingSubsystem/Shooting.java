@@ -9,6 +9,13 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 public class Shooting {
+
+    // Load libftcrobotcontroller.so (built from TeamCode/src/main/cpp via CMake/NDK).
+    // Runs once, when the Shooting class is first loaded.
+    static {
+        System.loadLibrary("ftcrobotcontroller");
+    }
+
     public Shooting() {
         shootingMotor = hardwareMap.get(DcMotorEx.class, "shootingMotor");
 
@@ -22,12 +29,12 @@ public class Shooting {
         telemetry.addLine("Initialized shooting stuff!");
         telemetry.update();
     }
-        
-    
+
     private DcMotorEx shootingMotor;
 
     // Random Constants
     private static class constants {
+
         static final double idleRPM = 0;
         static final double shootingMotorCPR = 28;
     }
@@ -37,7 +44,7 @@ public class Shooting {
     private void whileShooting() {
         isShooting = true;
 
-        while(isShooting) {
+        while (isShooting) {
             telemetry.addData("Current speed is: ", TPStoRPM(shootingMotor.getVelocity(), constants.shootingMotorCPR));
             linearOpMode.idle();
         }
@@ -72,7 +79,7 @@ public class Shooting {
         timer.reset();
 
         while (activationTime >= timer.milliseconds()) {
-            linearOpMode.idle();    // I think this idles it.
+            linearOpMode.idle(); // I think this idles it.
         }
 
         stopShootingMotors();
@@ -92,9 +99,12 @@ public class Shooting {
         timer.reset();
 
         while (activationTime >= timer.milliseconds()) {
-            telemetry.addData("Current shooting motor RPM is: ", TPStoRPM(shootingMotor.getVelocity(), constants.shootingMotorCPR));
+            telemetry.addData(
+                "Current shooting motor RPM is: ",
+                TPStoRPM(shootingMotor.getVelocity(), constants.shootingMotorCPR)
+            );
 
-            linearOpMode.idle();    // I think this idles it.
+            linearOpMode.idle(); // I think this idles it.
         }
 
         stopShootingMotors();
@@ -126,8 +136,12 @@ public class Shooting {
         return;
     }
 
-    private double RPMtoTPS(double RPM, double countsPerRev) { return ((RPM/60) * countsPerRev); }
-    private double TPStoRPM(double TPS, double countsPerRev) { return ((TPS / countsPerRev) * 60); }
+    // Implemented in C++ (src/main/cpp), exposed through the JNI bridge in ftcrobotcontroller.cpp.
+    private static native double RPMtoTPS(double RPM, double countsPerRev);
 
-    public boolean isShootingReady() { return true; }
+    private static native double TPStoRPM(double TPS, double countsPerRev);
+
+    public boolean isShootingReady() {
+        return true;
+    }
 }

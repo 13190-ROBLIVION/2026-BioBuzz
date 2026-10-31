@@ -38,6 +38,7 @@ android {
         }
         jniLibs.useLegacyPackaging true
     }
+    compileSdkMinor 0
 }
 
 dependencies {

@@ -1,25 +1,16 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
-
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-
 import com.qualcomm.robotcore.hardware.DcMotor;
-
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-
 import com.qualcomm.robotcore.hardware.IMU;
-
 import com.qualcomm.robotcore.hardware.Servo;
-
 import com.qualcomm.robotcore.util.ElapsedTime;
-
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 @Autonomous
-
 public class TimeBasedAuto extends LinearOpMode {
 
     private DcMotor frontLeftMotor, frontRightMotor, backLeftMotor, backRightMotor;
@@ -87,9 +78,7 @@ public class TimeBasedAuto extends LinearOpMode {
     private boolean shooterAvailable;
 
     @Override
-
     public void runOpMode() {
-
         initDrive();
 
         initImu();
@@ -97,7 +86,6 @@ public class TimeBasedAuto extends LinearOpMode {
         initMechanisms();
 
         while (!isStarted() && !isStopRequested()) {
-
             if (gamepad1.dpad_left) redAlliance = true;
 
             if (gamepad1.dpad_right) redAlliance = false;
@@ -119,7 +107,6 @@ public class TimeBasedAuto extends LinearOpMode {
             telemetry.update();
 
             sleep(50);
-
         }
 
         if (isStopRequested()) return;
@@ -135,7 +122,6 @@ public class TimeBasedAuto extends LinearOpMode {
         boolean doShooting = shootingRequested && shooterAvailable;
 
         try {
-
             if (doShooting) shooterMotor.setVelocity(SHOOTER_TARGET_TICKS_PER_SEC);
 
             forwardInches(TO_SHOT_IN, FORWARD_POWER);
@@ -145,29 +131,23 @@ public class TimeBasedAuto extends LinearOpMode {
             boolean aimed = turnToHeading(targetAngle, 2.5);
 
             if (doShooting && aimed && matchTimer.seconds() < SHOT_CUTOFF_SEC) {
-
                 shootPreloadedPollen();
-
             }
 
             stopShooter();
 
             if (!turnToHeading(0.0, 3.0)) {
-
                 telemetry.addLine("Heading recovery failed");
 
                 telemetry.update();
 
                 return;
-
             }
 
             forwardInches(TO_PARK_FORWARD_IN, FORWARD_POWER);
 
             strafeRightInches(-TO_PARK_LEFT_IN, STRAFE_POWER);
-
         } finally {
-
             stopDrive();
 
             stopShooter();
@@ -177,13 +157,10 @@ public class TimeBasedAuto extends LinearOpMode {
             if (intakeMotor != null) intakeMotor.setPower(0);
 
             if (feederServo != null) feederServo.setPosition(FEEDER_REST);
-
         }
-
     }
 
     private void initDrive() {
-
         frontLeftMotor = hardwareMap.get(DcMotor.class, "frontLeftMotor");
 
         frontRightMotor = hardwareMap.get(DcMotor.class, "frontRightMotor");
@@ -200,46 +177,32 @@ public class TimeBasedAuto extends LinearOpMode {
 
         backRightMotor.setDirection(DcMotor.Direction.REVERSE);
 
-        DcMotor[] driveMotors = {
-
-                frontLeftMotor, frontRightMotor, backLeftMotor, backRightMotor
-
-        };
+        DcMotor[] driveMotors = { frontLeftMotor, frontRightMotor, backLeftMotor, backRightMotor };
 
         for (DcMotor motor : driveMotors) {
-
             motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
             motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
             motor.setPower(0);
-
         }
-
     }
 
     private void initImu() {
-
         imu = hardwareMap.get(IMU.class, "imu");
 
         IMU.Parameters parameters = new IMU.Parameters(
+            new RevHubOrientationOnRobot(
+                RevHubOrientationOnRobot.LogoFacingDirection.UP,
 
-                new RevHubOrientationOnRobot(
-
-                        RevHubOrientationOnRobot.LogoFacingDirection.UP,
-
-                        RevHubOrientationOnRobot.UsbFacingDirection.BACKWARD
-
-                )
-
+                RevHubOrientationOnRobot.UsbFacingDirection.BACKWARD
+            )
         );
 
         imu.initialize(parameters);
-
     }
 
     private void initMechanisms() {
-
         shooterMotor = hardwareMap.tryGet(DcMotorEx.class, "shooterMotor");
 
         feederServo = hardwareMap.tryGet(Servo.class, "feederServo");
@@ -251,7 +214,6 @@ public class TimeBasedAuto extends LinearOpMode {
         shooterAvailable = shooterMotor != null && feederServo != null;
 
         if (shooterMotor != null) {
-
             shooterMotor.setDirection(DcMotor.Direction.FORWARD);
 
             shooterMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -259,49 +221,36 @@ public class TimeBasedAuto extends LinearOpMode {
             shooterMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
             shooterMotor.setVelocity(0);
-
         }
 
         if (feederServo != null) feederServo.setPosition(FEEDER_REST);
 
         if (transferMotor != null) {
-
             transferMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
             transferMotor.setPower(0);
-
         }
 
         if (intakeMotor != null) {
-
             intakeMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
             intakeMotor.setPower(0);
-
         }
-
     }
 
     private double yaw() {
-
         return imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
-
     }
 
     private double yawError(double target) {
-
         return AngleUnit.normalizeDegrees(target - yaw());
-
     }
 
     private double clamp(double value, double min, double max) {
-
         return Math.max(min, Math.min(max, value));
-
     }
 
     private void setDrivePower(double forward, double strafeRight, double turn) {
-
         double fl = forward + strafeRight + turn;
 
         double fr = forward - strafeRight - turn;
@@ -310,13 +259,14 @@ public class TimeBasedAuto extends LinearOpMode {
 
         double br = forward + strafeRight - turn;
 
-        double max = Math.max(1.0, Math.max(
-
+        double max = Math.max(
+            1.0,
+            Math.max(
                 Math.max(Math.abs(fl), Math.abs(fr)),
 
                 Math.max(Math.abs(bl), Math.abs(br))
-
-        ));
+            )
+        );
 
         frontLeftMotor.setPower(fl / max);
 
@@ -325,43 +275,32 @@ public class TimeBasedAuto extends LinearOpMode {
         backLeftMotor.setPower(bl / max);
 
         backRightMotor.setPower(br / max);
-
     }
 
     private void stopDrive() {
-
         setDrivePower(0, 0, 0);
-
     }
 
     private boolean turnToHeading(double targetHeading, double tolerance) {
-
         ElapsedTime timer = new ElapsedTime();
 
         timer.reset();
 
-        while (opModeIsActive() && timer.seconds() < 3.0
-
-                && matchTimer.seconds() < MOVEMENT_CUTOFF_SEC) {
-
+        while (opModeIsActive() && timer.seconds() < 3.0 && matchTimer.seconds() < MOVEMENT_CUTOFF_SEC) {
             double error = yawError(targetHeading);
 
             if (Math.abs(error) <= tolerance) {
-
                 stopDrive();
 
                 return true;
-
             }
 
             double turnPower = clamp(
+                Math.abs(error) * TURN_KP,
 
-                    Math.abs(error) * TURN_KP,
+                MIN_TURN_POWER,
 
-                    MIN_TURN_POWER,
-
-                    MAX_TURN_POWER
-
+                MAX_TURN_POWER
             );
 
             double turn = YAW_TO_TURN_SIGN * Math.signum(error) * turnPower;
@@ -377,31 +316,22 @@ public class TimeBasedAuto extends LinearOpMode {
             telemetry.update();
 
             idle();
-
         }
 
         stopDrive();
 
         return Math.abs(yawError(targetHeading)) <= tolerance;
-
     }
 
     private void forwardInches(double inches, double power) {
-
         moveTimed(inches, 0, power, FORWARD_IPS_AT_CAL_POWER);
-
     }
 
     private void strafeRightInches(double inches, double power) {
-
         moveTimed(0, inches, power, STRAFE_IPS_AT_CAL_POWER);
-
     }
 
-    private void moveTimed(double forwardInches, double strafeInches,
-
-                           double power, double inchesPerSecond) {
-
+    private void moveTimed(double forwardInches, double strafeInches, double power, double inchesPerSecond) {
         double distance = forwardInches != 0 ? forwardInches : strafeInches;
 
         if (Math.abs(distance) < 0.01 || inchesPerSecond <= 0 || power <= 0) return;
@@ -417,7 +347,6 @@ public class TimeBasedAuto extends LinearOpMode {
         timer.reset();
 
         while (opModeIsActive() && timer.seconds() < duration && matchTimer.seconds() < MOVEMENT_CUTOFF_SEC) {
-
             double error = yawError(holdHeading);
 
             double correction = clamp(YAW_TO_TURN_SIGN * error * DRIVE_HEADING_KP, -0.16, 0.16);
@@ -437,29 +366,23 @@ public class TimeBasedAuto extends LinearOpMode {
             telemetry.update();
 
             idle();
-
         }
 
         stopDrive();
-
     }
 
     private void shootPreloadedPollen() {
-
         for (int shot = 0; shot < SHOTS_TO_FIRE && opModeIsActive(); shot++) {
-
             if (matchTimer.seconds() >= SHOT_CUTOFF_SEC) break;
 
             boolean ready = waitForFlywheel(2.5);
 
             if (!ready) {
-
                 telemetry.addLine("Shooter not ready");
 
                 telemetry.update();
 
                 break;
-
             }
 
             if (transferMotor != null) transferMotor.setPower(TRANSFER_POWER);
@@ -477,13 +400,10 @@ public class TimeBasedAuto extends LinearOpMode {
             telemetry.addData("Shots Attempted", shot + 1);
 
             telemetry.update();
-
         }
-
     }
 
     private boolean waitForFlywheel(double timeoutSeconds) {
-
         ElapsedTime timer = new ElapsedTime();
 
         ElapsedTime stableTimer = new ElapsedTime();
@@ -494,17 +414,10 @@ public class TimeBasedAuto extends LinearOpMode {
 
         boolean previouslyInTolerance = false;
 
-        while (opModeIsActive() && timer.seconds() < timeoutSeconds
-
-                && matchTimer.seconds() < SHOT_CUTOFF_SEC) {
-
+        while (opModeIsActive() && timer.seconds() < timeoutSeconds && matchTimer.seconds() < SHOT_CUTOFF_SEC) {
             double actualVelocity = Math.abs(shooterMotor.getVelocity());
 
-            boolean withinTolerance = Math.abs(
-
-                    actualVelocity - SHOOTER_TARGET_TICKS_PER_SEC
-
-            ) < SHOOTER_TOLERANCE_TPS;
+            boolean withinTolerance = Math.abs(actualVelocity - SHOOTER_TARGET_TICKS_PER_SEC) < SHOOTER_TOLERANCE_TPS;
 
             if (withinTolerance && !previouslyInTolerance) stableTimer.reset();
 
@@ -519,34 +432,22 @@ public class TimeBasedAuto extends LinearOpMode {
             telemetry.update();
 
             idle();
-
         }
 
         return false;
-
     }
 
     private void pauseMs(long milliseconds, double cutoffSeconds) {
-
         ElapsedTime timer = new ElapsedTime();
 
         timer.reset();
 
-        while (opModeIsActive() && timer.milliseconds() < milliseconds
-
-                && matchTimer.seconds() < cutoffSeconds) {
-
+        while (opModeIsActive() && timer.milliseconds() < milliseconds && matchTimer.seconds() < cutoffSeconds) {
             idle();
-
         }
-
     }
 
     private void stopShooter() {
-
         if (shooterMotor != null) shooterMotor.setVelocity(0);
-
     }
-
-
 }
