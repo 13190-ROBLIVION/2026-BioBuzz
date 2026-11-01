@@ -51,7 +51,7 @@ public class Drivetrain extends LinearOpMode {
 
         RevHubOrientationOnRobot orientation = new RevHubOrientationOnRobot(
             RevHubOrientationOnRobot.LogoFacingDirection.UP,
-            RevHubOrientationOnRobot.UsbFacingDirection.FORWARD
+            RevHubOrientationOnRobot.UsbFacingDirection.FORWARD    // This is backwards on the other op mode thing
         );
 
         imu.initialize(new IMU.Parameters(orientation));
@@ -131,40 +131,27 @@ public class Drivetrain extends LinearOpMode {
 
             telemetry.addLine();
             telemetry.addLine(" ENCODERS ");
-
             telemetry.addData("Front Left", frontLeftMotor.getCurrentPosition());
-
             telemetry.addData("Front Right", frontRightMotor.getCurrentPosition());
-
             telemetry.addData("Back Left", backLeftMotor.getCurrentPosition());
-
             telemetry.addData("Back Right", backRightMotor.getCurrentPosition());
 
             telemetry.addLine();
             telemetry.addLine("===== JOYSTICKS =====");
-
             telemetry.addData("Forward / Back", "%.2f", y);
-
             telemetry.addData("Strafe", "%.2f", x);
-
             telemetry.addData("Rotation", "%.2f", rx);
 
             telemetry.addLine();
             telemetry.addLine("===== MOTOR POWER =====");
-
             telemetry.addData("FL Power", "%.2f", frontLeftPower);
-
             telemetry.addData("FR Power", "%.2f", frontRightPower);
-
             telemetry.addData("BL Power", "%.2f", backLeftPower);
-
             telemetry.addData("BR Power", "%.2f", backRightPower);
 
             telemetry.addLine();
             telemetry.addLine("===== STATUS =====");
-
             telemetry.addData("Slow Mode", slowMode ? "ON" : "OFF");
-
             telemetry.addLine("OPTIONS = Reset Heading");
 
             telemetry.update();
