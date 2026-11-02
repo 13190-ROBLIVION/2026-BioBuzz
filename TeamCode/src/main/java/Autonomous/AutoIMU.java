@@ -26,13 +26,13 @@ public class AutoIMU extends LinearOpMode {
     @Override
     public void runOpMode() {
         // Initialize drive motors
-        frontLeftMotor = hardwareMap.get(DcMotor.class, "frontLeft");
+        frontLeftMotor = hardwareMap.get(DcMotor.class, "frontLeftMotor");
 
-        frontRightMotor = hardwareMap.get(DcMotor.class, "frontRight");
+        frontRightMotor = hardwareMap.get(DcMotor.class, "frontRightMotor");
 
-        backLeftMotor = hardwareMap.get(DcMotor.class, "backLeft");
+        backLeftMotor = hardwareMap.get(DcMotor.class, "backLeftMotor");
 
-        backRightMotor = hardwareMap.get(DcMotor.class, "backRight");
+        backRightMotor = hardwareMap.get(DcMotor.class, "backRightMotor");
 
         // Set motors to stop safely
         frontLeftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
