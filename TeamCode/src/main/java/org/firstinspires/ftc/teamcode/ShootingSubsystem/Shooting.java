@@ -55,7 +55,7 @@ public class Shooting {
 
         // Same buffers as Drivetrain's still-check (keep in sync).
         static final double stillSpeedBuffer = 0.5; // in/s
-        static final double stillTurnBuffer = 2.0;  // deg/s
+        static final double stillTurnBuffer = 2.0; // deg/s
     }
 
     private boolean isShooting = false;
@@ -119,8 +119,8 @@ public class Shooting {
 
         while (activationTime >= timer.milliseconds()) {
             telemetry.addData(
-                    "Current shooting motor RPM is: ",
-                    TPStoRPM(shootingMotor.getVelocity(), constants.shootingMotorCPR)
+                "Current shooting motor RPM is: ",
+                TPStoRPM(shootingMotor.getVelocity(), constants.shootingMotorCPR)
             );
 
             linearOpMode.idle(); // I think this idles it.
@@ -148,7 +148,10 @@ public class Shooting {
     public void resetShootingMotors() {
         shootingMotor.setVelocity(constants.idleRPM);
 
-        telemetry.addData("Reset motor. Speed is now: ", TPStoRPM(shootingMotor.getVelocity(), constants.shootingMotorCPR));
+        telemetry.addData(
+            "Reset motor. Speed is now: ",
+            TPStoRPM(shootingMotor.getVelocity(), constants.shootingMotorCPR)
+        );
         telemetry.update();
 
         return;
@@ -159,8 +162,8 @@ public class Shooting {
         shootingMotor.setVelocity(0);
 
         telemetry.addData(
-                "Stopped motor. Speed is now: ",
-                TPStoRPM(shootingMotor.getVelocity(), constants.shootingMotorCPR)
+            "Stopped motor. Speed is now: ",
+            TPStoRPM(shootingMotor.getVelocity(), constants.shootingMotorCPR)
         );
         telemetry.update();
 
@@ -191,5 +194,7 @@ public class Shooting {
 
     private static native double TPStoRPM(double TPS, double countsPerRev);
 
-    public boolean isShootingReady() { return isBotStill(); }
+    public boolean isShootingReady() {
+        return isBotStill();
+    }
 }
