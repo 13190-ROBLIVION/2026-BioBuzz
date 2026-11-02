@@ -36,9 +36,16 @@ public class Drivetrain extends LinearOpMode {
 
     private boolean useOtos = false;
 
-    private static final double DEADZONE = 0.05;
-    private static final double SLOW_MODE_MULTIPLIER = 0.35;
-    private static final double STRAFE_GAIN = 1.1; // mecanums strafe slower than they drive
+    private static class constants {
+        private static final double DEADZONE = 0.05;
+        // Cm per second? The buffer for the bot to still be counted as still.
+        private static final double stillSpeedBuffer = 0.5;
+        // In Degrees per second. The buffer for the bot to still be counted as still.
+        private static final double stillTurnBuffer = 2.0;
+        private static final double SLOW_MODE_MULTIPLIER = 0.35;
+        private static final double STRAFE_GAIN = 1.1; // mecanums strafe slower than they drive
+    }
+
 
     @Override
     public void runOpMode() {
@@ -87,15 +94,15 @@ public class Drivetrain extends LinearOpMode {
             double x = gamepad1.left_stick_x;
             double rx = -gamepad1.right_stick_x;
 
-            if (Math.abs(y) < DEADZONE) {
+            if (Math.abs(y) < constants.DEADZONE) {
                 y = 0;
             }
 
-            if (Math.abs(x) < DEADZONE) {
+            if (Math.abs(x) < constants.DEADZONE) {
                 x = 0;
             }
 
-            if (Math.abs(rx) < DEADZONE) {
+            if (Math.abs(rx) < constants.DEADZONE) {
                 rx = 0;
             }
 
@@ -116,7 +123,7 @@ public class Drivetrain extends LinearOpMode {
             double rotX = x * Math.cos(-botHeadingRadians) - y * Math.sin(-botHeadingRadians);
             double rotY = x * Math.sin(-botHeadingRadians) + y * Math.cos(-botHeadingRadians);
 
-            rotX *= STRAFE_GAIN;
+            rotX *= constants.STRAFE_GAIN;
 
             double denominator = Math.max(Math.abs(rotY) + Math.abs(rotX) + Math.abs(rx), 1.0);
 
@@ -128,10 +135,10 @@ public class Drivetrain extends LinearOpMode {
             boolean slowMode = gamepad1.left_bumper;
 
             if (slowMode) {
-                frontLeftPower *= SLOW_MODE_MULTIPLIER;
-                frontRightPower *= SLOW_MODE_MULTIPLIER;
-                backLeftPower *= SLOW_MODE_MULTIPLIER;
-                backRightPower *= SLOW_MODE_MULTIPLIER;
+                frontLeftPower *= constants.SLOW_MODE_MULTIPLIER;
+                frontRightPower *= constants.SLOW_MODE_MULTIPLIER;
+                backLeftPower *= constants.SLOW_MODE_MULTIPLIER;
+                backRightPower *= constants.SLOW_MODE_MULTIPLIER;
             }
 
             frontLeftMotor.setPower(frontLeftPower);
@@ -249,5 +256,23 @@ public class Drivetrain extends LinearOpMode {
         }
 
         return angle;
+    }
+
+    /**
+     * True when the robot is (nearly) stationary — not driving AND not rotating.
+     * Uses the OTOS velocity. In IMU fallback mode there is no linear velocity
+     * source, so we conservatively report "moving" (returns false).
+     */
+    public boolean isStable() {
+        if (!useOtos) {
+            return false; // safe default: assume moving when we can't measure
+        }
+
+        SparkFunOTOS.Pose2D vel = otos.getVelocity();
+
+        double speedInPerSec = Math.hypot(vel.x, vel.y);
+        double turnDegPerSec = Math.abs(vel.h);
+
+        return speedInPerSec < constants.stillSpeedBuffer && turnDegPerSec < constants.stillTurnBuffer;
     }
 }

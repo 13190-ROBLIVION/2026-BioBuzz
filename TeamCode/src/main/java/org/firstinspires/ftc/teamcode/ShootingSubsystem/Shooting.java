@@ -8,6 +8,8 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import Teleop.Drivetrain;
+
 public class Shooting {
     // Load libftcrobotcontroller.so (built from TeamCode/src/main/cpp via CMake/NDK).
     // Runs once, when the Shooting class is first loaded.
@@ -156,7 +158,6 @@ public class Shooting {
 
     private static native double TPStoRPM(double TPS, double countsPerRev);
 
-    public boolean isShootingReady() {
-        return true;
-    }
+    // WHy is this function static?
+    public boolean isShootingReady() { return Drivetrain.isStable(); }
 }
