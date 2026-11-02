@@ -205,8 +205,8 @@ public class Drivetrain extends LinearOpMode {
         imu = hardwareMap.get(IMU.class, "imu");
 
         RevHubOrientationOnRobot orientation = new RevHubOrientationOnRobot(
-                RevHubOrientationOnRobot.LogoFacingDirection.UP,
-                RevHubOrientationOnRobot.UsbFacingDirection.FORWARD // TODO: verify on the robot, op modes disagree on this
+            RevHubOrientationOnRobot.LogoFacingDirection.UP,
+            RevHubOrientationOnRobot.UsbFacingDirection.FORWARD // TODO: verify on the robot, op modes disagree on this
         );
 
         imu.initialize(new IMU.Parameters(orientation));
