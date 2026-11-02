@@ -6,7 +6,6 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.IMU;
-
 import org.firstinspires.ftc.robotcore.external.navigation.Acceleration;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
@@ -54,7 +53,7 @@ public class Drivetrain extends LinearOpMode {
 
         RevHubOrientationOnRobot orientation = new RevHubOrientationOnRobot(
             RevHubOrientationOnRobot.LogoFacingDirection.UP,
-            RevHubOrientationOnRobot.UsbFacingDirection.FORWARD    // This is backwards on the other op mode thing
+            RevHubOrientationOnRobot.UsbFacingDirection.FORWARD // This is backwards on the other op mode thing
         );
 
         imu.initialize(new IMU.Parameters(orientation));
