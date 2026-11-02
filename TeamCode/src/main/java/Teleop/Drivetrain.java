@@ -256,22 +256,4 @@ public class Drivetrain extends LinearOpMode {
 
         return angle;
     }
-
-    /**
-     * True when the robot is (nearly) stationary — not driving AND not rotating.
-     * Uses the OTOS velocity. In IMU fallback mode there is no linear velocity
-     * source, so we conservatively report "moving" (returns false).
-     */
-    public boolean isStable() {
-        if (!useOtos) {
-            return false; // safe default: assume moving when we can't measure
-        }
-
-        SparkFunOTOS.Pose2D vel = otos.getVelocity();
-
-        double speedInPerSec = Math.hypot(vel.x, vel.y);
-        double turnDegPerSec = Math.abs(vel.h);
-
-        return speedInPerSec < constants.stillSpeedBuffer && turnDegPerSec < constants.stillTurnBuffer;
-    }
 }

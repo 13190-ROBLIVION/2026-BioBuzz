@@ -4,10 +4,12 @@ import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.har
 import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.linearOpMode;
 import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.telemetry;
 
-import Teleop.Drivetrain;
+import com.qualcomm.hardware.sparkfun.SparkFunOTOS;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 public class Shooting {
     // Load libftcrobotcontroller.so (built from TeamCode/src/main/cpp via CMake/NDK).
@@ -28,16 +30,32 @@ public class Shooting {
 
         shootingMotor.setVelocity(RPMtoTPS(constants.idleRPM, constants.shootingMotorCPR));
 
+        // Grab the OTOS if the robot has one. Drivetrain owns calibration and
+        // tracking reset — we only ever READ velocity from here.
+        otos = hardwareMap.tryGet(SparkFunOTOS.class, "sensor_otos");
+
+        if (otos != null) {
+            // Set units ourselves so the still-check is correct even if
+            // Drivetrain never initialized the sensor (e.g. in an auto).
+            otos.setLinearUnit(DistanceUnit.INCH);
+            otos.setAngularUnit(AngleUnit.DEGREES);
+        }
+
         telemetry.addLine("Initialized shooting stuff!");
         telemetry.update();
     }
 
     private DcMotorEx shootingMotor;
+    private SparkFunOTOS otos;
 
     // Random Constants
     private static class constants {
         static final double idleRPM = 0;
         static final double shootingMotorCPR = 28;
+
+        // Same buffers as Drivetrain's still-check (keep in sync).
+        static final double stillSpeedBuffer = 0.5; // in/s
+        static final double stillTurnBuffer = 2.0;  // deg/s
     }
 
     private boolean isShooting = false;
@@ -101,8 +119,8 @@ public class Shooting {
 
         while (activationTime >= timer.milliseconds()) {
             telemetry.addData(
-                "Current shooting motor RPM is: ",
-                TPStoRPM(shootingMotor.getVelocity(), constants.shootingMotorCPR)
+                    "Current shooting motor RPM is: ",
+                    TPStoRPM(shootingMotor.getVelocity(), constants.shootingMotorCPR)
             );
 
             linearOpMode.idle(); // I think this idles it.
@@ -130,10 +148,7 @@ public class Shooting {
     public void resetShootingMotors() {
         shootingMotor.setVelocity(constants.idleRPM);
 
-        telemetry.addData(
-            "Reset motor. Speed is now: ",
-            TPStoRPM(shootingMotor.getVelocity(), constants.shootingMotorCPR)
-        );
+        telemetry.addData("Reset motor. Speed is now: ", TPStoRPM(shootingMotor.getVelocity(), constants.shootingMotorCPR));
         telemetry.update();
 
         return;
@@ -144,12 +159,31 @@ public class Shooting {
         shootingMotor.setVelocity(0);
 
         telemetry.addData(
-            "Stopped motor. Speed is now: ",
-            TPStoRPM(shootingMotor.getVelocity(), constants.shootingMotorCPR)
+                "Stopped motor. Speed is now: ",
+                TPStoRPM(shootingMotor.getVelocity(), constants.shootingMotorCPR)
         );
         telemetry.update();
 
         return;
+    }
+
+    /**
+     * True when the robot is (nearly) stationary — not driving AND not rotating.
+     * Reads the OTOS straight from the HardwareMap. In IMU fallback mode (no
+     * OTOS) there is no linear velocity source, so we conservatively report
+     * "moving" (returns false).
+     */
+    private boolean isBotStill() {
+        if (otos == null) {
+            return false; // safe default: assume moving when we can't measure
+        }
+
+        SparkFunOTOS.Pose2D vel = otos.getVelocity();
+
+        double speedInPerSec = Math.hypot(vel.x, vel.y);
+        double turnDegPerSec = Math.abs(vel.h);
+
+        return speedInPerSec < constants.stillSpeedBuffer && turnDegPerSec < constants.stillTurnBuffer;
     }
 
     // Implemented in C++ (src/main/cpp), exposed through the JNI bridge in ftcrobotcontroller.cpp.
@@ -157,8 +191,5 @@ public class Shooting {
 
     private static native double TPStoRPM(double TPS, double countsPerRev);
 
-    // WHy is this function static?
-    public boolean isShootingReady() {
-        return Drivetrain.isStable();
-    }
+    public boolean isShootingReady() { return isBotStill(); }
 }
