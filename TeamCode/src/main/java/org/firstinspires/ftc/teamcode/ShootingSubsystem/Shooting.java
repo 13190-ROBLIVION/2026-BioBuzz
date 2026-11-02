@@ -4,11 +4,10 @@ import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.har
 import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.linearOpMode;
 import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.telemetry;
 
+import Teleop.Drivetrain;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
-
-import Teleop.Drivetrain;
 
 public class Shooting {
     // Load libftcrobotcontroller.so (built from TeamCode/src/main/cpp via CMake/NDK).
@@ -159,5 +158,7 @@ public class Shooting {
     private static native double TPStoRPM(double TPS, double countsPerRev);
 
     // WHy is this function static?
-    public boolean isShootingReady() { return Drivetrain.isStable(); }
+    public boolean isShootingReady() {
+        return Drivetrain.isStable();
+    }
 }

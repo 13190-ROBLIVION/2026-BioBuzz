@@ -46,7 +46,6 @@ public class Drivetrain extends LinearOpMode {
         private static final double STRAFE_GAIN = 1.1; // mecanums strafe slower than they drive
     }
 
-
     @Override
     public void runOpMode() {
         initDriveMotors();
