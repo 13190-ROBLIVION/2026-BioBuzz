@@ -7,11 +7,9 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.util.ElapsedTime;
-
+import java.util.concurrent.TimeUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-
-import java.util.concurrent.TimeUnit;
 
 /**
  * Canonical field-centric teleop (merged Drivetrain + otosLocalizer).
@@ -166,7 +164,9 @@ public class Drivetrain extends LinearOpMode {
     }
 
     private void beginPlay() {
-        if (isStopRequested()) { return; }
+        if (isStopRequested()) {
+            return;
+        }
 
         imu.resetYaw();
 
@@ -259,8 +259,12 @@ public class Drivetrain extends LinearOpMode {
         if (useOtos) {
             telemetry.addData("X", "%.1f in", pose.x);
             telemetry.addData("Y", "%.1f in", pose.y);
-            telemetry.addData(            // Edge-detected reset so holding the button doesn't re-zero every loop
-                    "Speed", "%.1f in/s", Math.hypot(vel.x, vel.y));
+            telemetry.addData(
+                // Edge-detected reset so holding the button doesn't re-zero every loop
+                "Speed",
+                "%.1f in/s",
+                Math.hypot(vel.x, vel.y)
+            );
             telemetry.addData("Turn Rate", "%.1f deg/s", vel.h);
         }
 
