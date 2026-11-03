@@ -7,27 +7,14 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.util.ElapsedTime;
-import java.util.concurrent.TimeUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
-/**
- * Canonical field-centric teleop (merged Drivetrain + otosLocalizer).
- *
- * - Heading and position come from the SparkFun OTOS ("sensor_otos") when it is
- *   connected and calibrated. This also gives us X/Y position and velocity for
- *   free (velocity is what shooting-on-the-move compensation will need).
- * - If the OTOS is missing or calibration fails, we fall back to the control
- *   hub IMU so the robot still drives at a meet instead of refusing to start.
- *
- * Controls:
- *   Left stick        = drive / strafe (field-centric)
- *   Right stick X     = rotate
- *   OPTIONS (edge)    = reset OTOS tracking + IMU yaw
- *   Hold LEFT BUMPER  = slow mode
- */
+import java.util.Locale;
+
 @TeleOp(name = "Drivetrain", group = "Teleop")
 public class Drivetrain extends LinearOpMode {
+    // ----- Hardware (created in onConstruct, like components) -----
     private DcMotor frontLeftMotor;
     private DcMotor frontRightMotor;
     private DcMotor backLeftMotor;
@@ -35,36 +22,307 @@ public class Drivetrain extends LinearOpMode {
 
     private IMU imu;
     private SparkFunOTOS otos;
-
     private boolean useOtos = false;
+
+    // ----- Actor state (written by one tick step, read by the next) -----
+    // Input state (from getInputs)
+    private double driveForward; // -1..1, left stick Y, deadzoned
+    private double driveStrafe; // -1..1, left stick X, deadzoned
+    private double driveTurn; // -1..1, right stick X, deadzoned
+    private boolean slowMode;
+
+    // Localization state (from calculateHeading)
+    private double botHeadingRadians;
+    private SparkFunOTOS.Pose2D pose = null;
+    private SparkFunOTOS.Pose2D velocity = null;
+
+    // Output state (from fieldRotation)
+    private double frontLeftPower;
+    private double frontRightPower;
+    private double backLeftPower;
+    private double backRightPower;
+
+    // ----- Per-frame input bookkeeping -----
+    private boolean optionsPressedLastFrame = false;
+
+    // ----- Delta time -----
+    // One clock for the whole play session; delta = now - lastTick.
+    private final ElapsedTime playClock = new ElapsedTime();
+    private double lastTickSeconds = 0.0;
+    private double lastDeltaTimeSeconds = 0.0; // the delta this tick ran with
+
+    // ----- Stability -----
+    // stillDurationSeconds accumulates DeltaSeconds while the bot is still and
+    // resets the moment it moves - exactly how UE's Hold trigger accumulates
+    // HeldDuration. isStable() flips only after holding past the threshold.
+    private double stillDurationSeconds = 0.0;
 
     private static class constants {
         private static final double DEADZONE = 0.05;
-        // Cm per second? The buffer for the bot to still be counted as still.
+        // Inches per second. The buffer for the bot to still be counted as still.
         private static final double stillSpeedBuffer = 0.5;
-        // In Degrees per second. The buffer for the bot to still be counted as still.
+        // Degrees per second. The buffer for the bot to still be counted as still.
         private static final double stillTurnBuffer = 2.0;
+        // How long the bot must stay still before isStable() flips true.
+        private static final double stillDebounceSeconds = 0.25;
         private static final double SLOW_MODE_MULTIPLIER = 0.35;
         private static final double STRAFE_GAIN = 1.1; // mecanums strafe slower than they drive
     }
 
+    // ----- Game loop -----
+
     @Override
     public void runOpMode() {
-        // Run the startup script
         onConstruct();
-
         waitForStart();
-
-        // Run begin play
         beginPlay();
 
         while (opModeIsActive()) {
-            ElapsedTime deltaTime = new ElapsedTime();
-
-            tick(deltaTime.time(TimeUnit.MILLISECONDS));
-
-            deltaTime.reset();
+            lastDeltaTimeSeconds = getDeltaTimeSeconds();
+            tick(lastDeltaTimeSeconds);
         }
+    }
+
+    /**
+     * one clock, delta = now - last. (The old pattern of "new
+     * ElapsedTime() every loop" always reported ~0, which makes any
+     * delta-scaled behavior silently dead.)
+     */
+    private double getDeltaTimeSeconds() {
+        double now = playClock.seconds();
+        double deltaTimeSeconds = now - lastTickSeconds;
+        lastTickSeconds = now;
+
+        return deltaTimeSeconds;
+    }
+
+    // ----- Lifecycle steps -----
+
+    /**
+     * Runs before the op mode runs. Not quite the constructor.
+     */
+    private void onConstruct() {
+        initDriveMotors();
+        initImu();
+        initOtos();
+
+        telemetry.addLine("FIELD CENTRIC READY");
+        telemetry.addData("Localizer", useOtos ? "OTOS" : "IMU FALLBACK");
+        telemetry.addLine("Left Stick = Drive / Strafe");
+        telemetry.addLine("Right Stick X = Rotate");
+        telemetry.addLine("OPTIONS = Reset Heading + Position");
+        telemetry.addLine("Hold LEFT BUMPER = Slow Mode");
+        telemetry.update();
+    }
+
+    /**
+     * BeginPlay - one-shot setup at the start of play.
+     */
+    private void beginPlay() {
+        // No isStopRequested() check here: if stop was asked for, the tick loop
+        // below never runs anyway - and resetting sensors beforehand is harmless.
+        imu.resetYaw();
+
+        if (useOtos) {
+            otos.resetTracking(); // zero X/Y/heading at the robot's starting spot
+        }
+
+        playClock.reset();
+        lastTickSeconds = 0.0;
+    }
+
+    /**
+     * Stuff to run while the bot is playing.
+     *
+     * @param deltaTimeSeconds seconds since the previous tick
+     */
+    private void tick(double deltaTimeSeconds) {
+        getPreviousOptions(); // input edge detection first, it can re-zero heading
+        getInputs();
+        calculateHeading();
+        fieldRotation();
+        updateStability(deltaTimeSeconds);
+        tickTelemetry();
+    }
+
+    // ----- Tick steps (each reads what the previous one wrote) -----
+
+    /**
+     * act only on the transition
+     * "not pressed -> pressed", so holding the button re-zeros exactly once.
+     */
+    void getPreviousOptions() {
+        boolean optionsPressed = gamepad1.options;
+
+        if (optionsPressed && !optionsPressedLastFrame) {
+            imu.resetYaw();
+
+            if (useOtos) {
+                otos.resetTracking();
+            }
+        }
+
+        optionsPressedLastFrame = optionsPressed;
+    }
+
+    /**
+     * PlayerInput -> input axes. Raw sticks are inverted (stick up is
+     * negative), deadzoned, and stored on the actor for the movement step.
+     */
+    void getInputs() {
+        driveForward = -gamepad1.left_stick_y;
+        driveStrafe = gamepad1.left_stick_x;
+        driveTurn = -gamepad1.right_stick_x;
+
+        if (Math.abs(driveForward) < constants.DEADZONE) {
+            driveForward = 0;
+        }
+
+        if (Math.abs(driveStrafe) < constants.DEADZONE) {
+            driveStrafe = 0;
+        }
+
+        if (Math.abs(driveTurn) < constants.DEADZONE) {
+            driveTurn = 0;
+        }
+
+        slowMode = gamepad1.left_bumper;
+    }
+
+    /**
+     * the localization half. Fills heading, pose and
+     * velocity for the rest of the tick.
+     */
+    void calculateHeading() {
+        if (useOtos) {
+            pose = otos.getPosition();
+            velocity = otos.getVelocity();
+            botHeadingRadians = Math.toRadians(normalizeDegrees(pose.h));
+        } else {
+            velocity = null;
+            botHeadingRadians = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+        }
+    }
+
+    /**
+     * the actuation half - rotate the input into the
+     * robot frame (field-centric), mix mecanum powers, apply slow mode, drive.
+     */
+    void fieldRotation() {
+        double rotX = driveStrafe * Math.cos(-botHeadingRadians) - driveForward * Math.sin(-botHeadingRadians);
+        double rotY = driveStrafe * Math.sin(-botHeadingRadians) + driveForward * Math.cos(-botHeadingRadians);
+
+        rotX *= constants.STRAFE_GAIN;
+
+        double denominator = Math.max(Math.abs(rotY) + Math.abs(rotX) + Math.abs(driveTurn), 1.0);
+
+        frontLeftPower = (rotY + rotX + driveTurn) / denominator;
+        backLeftPower = (rotY - rotX + driveTurn) / denominator;
+        frontRightPower = (rotY - rotX - driveTurn) / denominator;
+        backRightPower = (rotY + rotX - driveTurn) / denominator;
+
+        if (slowMode) {
+            frontLeftPower *= constants.SLOW_MODE_MULTIPLIER;
+            frontRightPower *= constants.SLOW_MODE_MULTIPLIER;
+            backLeftPower *= constants.SLOW_MODE_MULTIPLIER;
+            backRightPower *= constants.SLOW_MODE_MULTIPLIER;
+        }
+
+        frontLeftMotor.setPower(frontLeftPower);
+        frontRightMotor.setPower(frontRightPower);
+        backLeftMotor.setPower(backLeftPower);
+        backRightMotor.setPower(backRightPower);
+    }
+
+    /**
+     * accumulate HeldDuration += DeltaTime
+     * while the condition holds, reset otherwise, trigger past threshold.
+     * This is why deltaTime matters: the debounce time is real seconds
+     * regardless of how fast the loop runs.
+     */
+    void updateStability(double deltaTimeSeconds) {
+        boolean instantStill = false;
+
+        if (useOtos && velocity != null) {
+            double speedInPerSec = Math.hypot(velocity.x, velocity.y);
+            double turnDegPerSec = Math.abs(velocity.h);
+
+            instantStill = speedInPerSec < constants.stillSpeedBuffer && turnDegPerSec < constants.stillTurnBuffer;
+        }
+
+        if (instantStill) {
+            stillDurationSeconds += deltaTimeSeconds;
+        } else {
+            stillDurationSeconds = 0.0;
+        }
+    }
+
+    /**
+     * True once the bot has been still for stillDebounceSeconds. Requires the
+     * OTOS (no linear velocity in IMU fallback mode). This is the signal
+     * Shooting.isShootingReady() wants.
+     */
+    public boolean isStable() {
+        if (!useOtos) {
+            return false; // safe default: assume moving when we can't measure
+        }
+
+        return stillDurationSeconds >= constants.stillDebounceSeconds;
+    }
+
+    /**
+     * Debug stuff. IDK
+     */
+    void tickTelemetry() {
+        double displayDelta = Math.max(lastDeltaTimeSeconds, 0);
+
+        telemetry.addLine("===== POSE =====");
+        telemetry.addData("Localizer", useOtos ? "OTOS" : "IMU FALLBACK");
+        telemetry.addData("Heading", "%.1f deg", Math.toDegrees(botHeadingRadians));
+
+        if (useOtos && pose != null && velocity != null) {
+            telemetry.addData("X", "%.1f in", pose.x);
+            telemetry.addData("Y", "%.1f in", pose.y);
+            telemetry.addData("Speed", "%.1f in/s", Math.hypot(velocity.x, velocity.y));
+            telemetry.addData("Turn Rate", "%.1f deg/s", velocity.h);
+        }
+
+        telemetry.addLine();
+        telemetry.addLine("===== ENCODERS =====");
+        telemetry.addData("Front Left", frontLeftMotor.getCurrentPosition());
+        telemetry.addData("Front Right", frontRightMotor.getCurrentPosition());
+        telemetry.addData("Back Left", backLeftMotor.getCurrentPosition());
+        telemetry.addData("Back Right", backRightMotor.getCurrentPosition());
+
+        telemetry.addLine();
+        telemetry.addLine("===== MOTOR POWER =====");
+        telemetry.addData("FL", "%.2f", frontLeftPower);
+        telemetry.addData("FR", "%.2f", frontRightPower);
+        telemetry.addData("BL", "%.2f", backLeftPower);
+        telemetry.addData("BR", "%.2f", backRightPower);
+
+        telemetry.addLine();
+        telemetry.addLine("===== STATUS =====");
+        telemetry.addData("stat fps", displayDelta > 0 ? String.format(Locale.US, "%.0f", 1.0 / displayDelta) : "-");
+        telemetry.addData("Stability", isStable() ? "STABLE" : String.format(Locale.US, "settling %.2fs", stillDurationSeconds));
+        telemetry.addData("Slow Mode", slowMode ? "ON" : "OFF");
+        telemetry.addLine("OPTIONS = Reset Heading + Position");
+
+        telemetry.update();
+    }
+
+    // ----- Helpers -----
+
+    private double normalizeDegrees(double angle) {
+        while (angle > 180) {
+            angle -= 360;
+        }
+
+        while (angle <= -180) {
+            angle += 360;
+        }
+
+        return angle;
     }
 
     private void initDriveMotors() {
@@ -98,8 +356,8 @@ public class Drivetrain extends LinearOpMode {
         imu = hardwareMap.get(IMU.class, "imu");
 
         RevHubOrientationOnRobot orientation = new RevHubOrientationOnRobot(
-            RevHubOrientationOnRobot.LogoFacingDirection.UP,
-            RevHubOrientationOnRobot.UsbFacingDirection.FORWARD // TODO: verify on the robot, op modes disagree on this
+                RevHubOrientationOnRobot.LogoFacingDirection.UP,
+                RevHubOrientationOnRobot.UsbFacingDirection.FORWARD // TODO: verify on the robot, op modes disagree on this
         );
 
         imu.initialize(new IMU.Parameters(orientation));
@@ -130,163 +388,5 @@ public class Drivetrain extends LinearOpMode {
         }
 
         useOtos = true;
-    }
-
-    private double normalizeDegrees(double angle) {
-        while (angle > 180) {
-            angle -= 360;
-        }
-
-        while (angle <= -180) {
-            angle += 360;
-        }
-
-        return angle;
-    }
-
-    /**
-     * Runs before the op mode runs
-     * Not quite the constructor
-     */
-    private void onConstruct() {
-        initDriveMotors();
-        initImu();
-        initOtos();
-
-        // Telemetry
-        telemetry.addLine("FIELD CENTRIC READY");
-        telemetry.addData("Localizer", useOtos ? "OTOS" : "IMU FALLBACK");
-        telemetry.addLine("Left Stick = Drive / Strafe");
-        telemetry.addLine("Right Stick X = Rotate");
-        telemetry.addLine("OPTIONS = Reset Heading + Position");
-        telemetry.addLine("Hold LEFT BUMPER = Slow Mode");
-        telemetry.update();
-    }
-
-    private void beginPlay() {
-        if (isStopRequested()) {
-            return;
-        }
-
-        imu.resetYaw();
-
-        if (useOtos) {
-            otos.resetTracking(); // zero X/Y/heading at the robot's starting spot
-        }
-    }
-
-    /**
-     * Stuff to run as bot is running
-     * Deltatime in milliseconds
-     */
-    private void tick(double deltaTime) {
-        boolean previousOptions = false;
-
-        boolean optionsPressed = gamepad1.options;
-
-        if (optionsPressed && !previousOptions) {
-            imu.resetYaw();
-
-            if (useOtos) {
-                otos.resetTracking();
-            }
-        }
-
-        previousOptions = optionsPressed;
-
-        // ----- Inputs -----
-        double y = -gamepad1.left_stick_y;
-        double x = gamepad1.left_stick_x;
-        double rx = -gamepad1.right_stick_x;
-
-        if (Math.abs(y) < constants.DEADZONE) {
-            y = 0;
-        }
-
-        if (Math.abs(x) < constants.DEADZONE) {
-            x = 0;
-        }
-
-        if (Math.abs(rx) < constants.DEADZONE) {
-            rx = 0;
-        }
-
-        // ----- Heading: OTOS primary, IMU fallback -----
-        SparkFunOTOS.Pose2D pose = null;
-        SparkFunOTOS.Pose2D vel = null;
-        double botHeadingRadians;
-
-        if (useOtos) {
-            pose = otos.getPosition();
-            vel = otos.getVelocity();
-            botHeadingRadians = Math.toRadians(normalizeDegrees(pose.h));
-        } else {
-            botHeadingRadians = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
-        }
-
-        // ----- Field-centric rotation (same math as before, + strafe gain) -----
-        double rotX = x * Math.cos(-botHeadingRadians) - y * Math.sin(-botHeadingRadians);
-        double rotY = x * Math.sin(-botHeadingRadians) + y * Math.cos(-botHeadingRadians);
-
-        rotX *= constants.STRAFE_GAIN;
-
-        double denominator = Math.max(Math.abs(rotY) + Math.abs(rotX) + Math.abs(rx), 1.0);
-
-        double frontLeftPower = (rotY + rotX + rx) / denominator;
-        double backLeftPower = (rotY - rotX + rx) / denominator;
-        double frontRightPower = (rotY - rotX - rx) / denominator;
-        double backRightPower = (rotY + rotX - rx) / denominator;
-
-        boolean slowMode = gamepad1.left_bumper;
-
-        if (slowMode) {
-            frontLeftPower *= constants.SLOW_MODE_MULTIPLIER;
-            frontRightPower *= constants.SLOW_MODE_MULTIPLIER;
-            backLeftPower *= constants.SLOW_MODE_MULTIPLIER;
-            backRightPower *= constants.SLOW_MODE_MULTIPLIER;
-        }
-
-        frontLeftMotor.setPower(frontLeftPower);
-        frontRightMotor.setPower(frontRightPower);
-        backLeftMotor.setPower(backLeftPower);
-        backRightMotor.setPower(backRightPower);
-
-        // ----- Telemetry -----
-        telemetry.addLine("===== POSE =====");
-        telemetry.addData("Localizer", useOtos ? "OTOS" : "IMU FALLBACK");
-        telemetry.addData("Heading", "%.1f deg", Math.toDegrees(botHeadingRadians));
-
-        if (useOtos) {
-            telemetry.addData("X", "%.1f in", pose.x);
-            telemetry.addData("Y", "%.1f in", pose.y);
-            telemetry.addData(
-                // Edge-detected reset so holding the button doesn't re-zero every loop
-                "Speed",
-                "%.1f in/s",
-                Math.hypot(vel.x, vel.y)
-            );
-            telemetry.addData("Turn Rate", "%.1f deg/s", vel.h);
-        }
-
-        telemetry.addLine();
-        telemetry.addLine("===== ENCODERS =====");
-        telemetry.addData("Front Left", frontLeftMotor.getCurrentPosition());
-        telemetry.addData("Front Right", frontRightMotor.getCurrentPosition());
-        telemetry.addData("Back Left", backLeftMotor.getCurrentPosition());
-        telemetry.addData("Back Right", backRightMotor.getCurrentPosition());
-
-        telemetry.addLine();
-        telemetry.addLine("===== MOTOR POWER =====");
-        telemetry.addData("FL", "%.2f", frontLeftPower);
-        telemetry.addData("FR", "%.2f", frontRightPower);
-        telemetry.addData("BL", "%.2f", backLeftPower);
-        telemetry.addData("BR", "%.2f", backRightPower);
-
-        telemetry.addLine();
-        telemetry.addLine("===== STATUS =====");
-        telemetry.addData("Slow Mode", slowMode ? "ON" : "OFF");
-        telemetry.addLine("OPTIONS = Reset Heading + Position");
-
-        telemetry.update();
     }
 }
