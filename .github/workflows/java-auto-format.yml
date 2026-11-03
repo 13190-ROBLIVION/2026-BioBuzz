@@ -1,0 +1,167 @@
+name: Java Auto Format
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    # Fork PRs get a read-only GITHUB_TOKEN, so the push below can never
+    # succeed for them — skip instead of failing with a permanent red X.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    concurrency:
+      group: java-format-${{ github.event.pull_request.number || github.ref_name }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # Pin pull_request runs to the exact head SHA (a branch NAME can be
+          # force-pushed between PR open and CI run — the "cache poisoning via
+          # execution of untrusted code" pattern CodeQL flagged on java-lint.yml).
+          # workflow_dispatch falls back to the ref it was dispatched on.
+          ref: ${{ github.event.pull_request.head.sha || github.ref_name }}
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      # Prettier + prettier-plugin-java are installed OUTSIDE the repo so the
+      # `git add .` below can never pick up node_modules.
+      - name: Install formatter
+        run: |
+          mkdir -p "$RUNNER_TEMP/java-formatter"
+          cd "$RUNNER_TEMP/java-formatter"
+          bun init -y > /dev/null
+          bun add prettier@3.9.10 prettier-plugin-java@2.11.0
+
+      - name: Format code
+        run: |
+          cd "$RUNNER_TEMP/java-formatter"
+          bunx prettier --plugin=prettier-plugin-java \
+            --tab-width 4 --print-width 120 \
+            --write "$GITHUB_WORKSPACE/TeamCode/src/**/*.java"
+
+      # prettier-plugin-java hardcodes a blank line after the "{" of every class
+      # body, and it has no option to turn that off (its only options are
+      # arrowParens / trailingComma / experimentalOperatorPosition). Strip the
+      # line in a post-pass. This runs right after `prettier --write`, which
+      # itself deletes blank lines after every other kind of "{" (methods,
+      # lambdas, switch, anonymous classes, interface/enum/record bodies), so
+      # the only blank line that can follow a line ending in "{" is the one the
+      # plugin just added after a class brace. The scanner skips comments,
+      # strings and text blocks, so a "{" inside those is never touched. The
+      # script is written to $RUNNER_TEMP (outside the repo) so `git add .`
+      # below can never pick it up.
+      - name: Remove blank line after class braces
+        run: |
+          cd "$RUNNER_TEMP/java-formatter"
+
+          cat > strip-class-blank.mjs <<'STRIP'
+          // Removes the blank line prettier-plugin-java hardcodes after the "{" of a
+          // class body (the plugin has no option to disable it). Run it right after
+          // `prettier --write`: prettier itself deletes blank lines after every other
+          // kind of "{" (methods, lambdas, switch, anonymous classes, interface/enum/
+          // record bodies), so the only blank line that can follow a line ending in "{"
+          // is the one the plugin just added after a class brace. Comments, strings and
+          // text blocks are skipped, so a "{" inside them is never matched.
+          import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+          import { join } from "node:path";
+
+          const root = process.argv[2];
+          if (!root || !existsSync(root)) process.exit(0);
+
+          const walk = (dir) =>
+              readdirSync(dir).flatMap((name) => {
+                  const path = join(dir, name);
+                  return statSync(path).isDirectory() ? walk(path) : path.endsWith(".java") ? [path] : [];
+              });
+
+          // Code-only view of one line; flips inBlockComment / inTextBlock as it scans.
+          const codeOf = (line, state) => {
+              let code = "";
+              for (let i = 0; i < line.length; i++) {
+                  const c = line[i];
+                  if (state.inBlockComment) {
+                      if (c === "*" && line[i + 1] === "/") {
+                          state.inBlockComment = false;
+                          i++;
+                      }
+                  } else if (state.inTextBlock) {
+                      if (c === "\\") i++;
+                      else if (c === '"' && line.startsWith('"""', i)) {
+                          state.inTextBlock = false;
+                          i += 2;
+                      }
+                  } else if (c === "/" && line[i + 1] === "*") {
+                      state.inBlockComment = true;
+                      i++;
+                  } else if (c === "/" && line[i + 1] === "/") {
+                      break; // rest of the line is a comment
+                  } else if (c === '"') {
+                      if (line.startsWith('"""', i)) {
+                          state.inTextBlock = true;
+                          i += 2;
+                      } else {
+                          while (++i < line.length && line[i] !== '"') if (line[i] === "\\") i++;
+                          code += '""'; // never scan string contents for braces
+                      }
+                  } else if (c === "'") {
+                      while (++i < line.length && line[i] !== "'") if (line[i] === "\\") i++;
+                      code += "''"; // same for char literals
+                  } else {
+                      code += c;
+                  }
+              }
+              return code;
+          };
+
+          let removed = 0;
+          for (const file of walk(root)) {
+              const lines = readFileSync(file, "utf8").split("\n");
+              const state = { inBlockComment: false, inTextBlock: false };
+              const out = [];
+              for (let i = 0; i < lines.length; i++) {
+                  const code = codeOf(lines[i], state);
+                  out.push(lines[i]);
+                  if (/\{\s*$/.test(code)) {
+                      // swallow every blank line directly after a code "{" line
+                      while (i + 1 < lines.length && lines[i + 1].trim() === "") {
+                          i++;
+                          removed++;
+                      }
+                  }
+              }
+              const next = out.join("\n");
+              if (next !== lines.join("\n")) writeFileSync(file, next);
+          }
+          console.log(`strip-class-blank: removed ${removed} blank line(s) after opening braces`);
+          STRIP
+
+          bun strip-class-blank.mjs "$GITHUB_WORKSPACE/TeamCode/src"
+
+      - name: Commit changes
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+
+          git add .
+
+          if git diff --staged --quiet; then
+            echo "No formatting changes to commit"
+            exit 0
+          fi
+
+          git commit -m "chore: auto-format Java code"
+          git push origin "HEAD:${TARGET_BRANCH}"
+        env:
+          TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}

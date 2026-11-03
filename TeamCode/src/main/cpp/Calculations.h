@@ -1,0 +1,10 @@
+#ifndef INC_2026_BIOBUZZ_CALCULATIONS_H
+#define INC_2026_BIOBUZZ_CALCULATIONS_H
+
+class Calculations {
+    public:
+        static double RPMtoTPS(double RPM, double countsPerRev) { return ((RPM/60) * countsPerRev); }
+        static double TPStoRPM(double TPS, double countsPerRev) { return ((TPS / countsPerRev) * 60); }
+};
+
+#endif //INC_2026_BIOBUZZ_CALCULATIONS_H
