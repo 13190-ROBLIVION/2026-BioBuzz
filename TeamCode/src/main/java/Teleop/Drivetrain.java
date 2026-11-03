@@ -7,10 +7,9 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import java.util.Locale;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-
-import java.util.Locale;
 
 @TeleOp(name = "Drivetrain", group = "Teleop")
 public class Drivetrain extends LinearOpMode {
@@ -379,7 +378,10 @@ public class Drivetrain extends LinearOpMode {
         telemetry.addLine();
         telemetry.addLine("===== STATUS =====");
         telemetry.addData("stat fps", displayDelta > 0 ? String.format(Locale.US, "%.0f", 1.0 / displayDelta) : "-");
-        telemetry.addData("Stability", isStable() ? "STABLE" : String.format(Locale.US, "settling %.2fs", stillDurationSeconds));
+        telemetry.addData(
+            "Stability",
+            isStable() ? "STABLE" : String.format(Locale.US, "settling %.2fs", stillDurationSeconds)
+        );
         telemetry.addData("Slow Mode", slowMode ? "ON" : "OFF");
         telemetry.addLine("OPTIONS = Reset Heading + Position");
 
@@ -431,8 +433,8 @@ public class Drivetrain extends LinearOpMode {
         imu = hardwareMap.get(IMU.class, "imu");
 
         RevHubOrientationOnRobot orientation = new RevHubOrientationOnRobot(
-                RevHubOrientationOnRobot.LogoFacingDirection.UP,
-                RevHubOrientationOnRobot.UsbFacingDirection.FORWARD // TODO: verify on the robot, op modes disagree on this
+            RevHubOrientationOnRobot.LogoFacingDirection.UP,
+            RevHubOrientationOnRobot.UsbFacingDirection.FORWARD // TODO: verify on the robot, op modes disagree on this
         );
 
         imu.initialize(new IMU.Parameters(orientation));
