@@ -43,8 +43,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - language: actions
-          build-mode: none
+        # NOTE: 'java-kotlin' is intentionally the ONLY language in this matrix.
+        # Do not re-add 'actions' (or any second language) here. With two matrix
+        # legs, the fast 'actions' analysis uploads its SARIF minutes before the
+        # slow java-kotlin build+analysis finishes, and the code scanning check on
+        # pull requests is evaluated on that first upload, reporting the transient
+        #   "Code scanning cannot determine the alerts introduced by this pull
+        #    request, because 1 configuration present on refs/heads/main was not
+        #    found: Actions workflow (codeql.yml) /language:java-kotlin"
+        # warning on every PR. One language = one upload = one correct evaluation.
         - language: java-kotlin
           build-mode: autobuild # This mode only analyzes Java. Set this to 'autobuild' or 'manual' to analyze Kotlin too.
         # CodeQL supports the following values keywords for 'language': 'actions', 'c-cpp', 'csharp', 'go', 'java-kotlin', 'javascript-typescript', 'python', 'ruby', 'rust', 'swift'
