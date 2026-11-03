@@ -6,7 +6,6 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 
 @Autonomous(name = "Time Based Auto", group = "Autonomous")
 public class AutoTest extends LinearOpMode {
-
     private DcMotor frontLeftMotor;
     private DcMotor frontRightMotor;
     private DcMotor backLeftMotor;
@@ -14,7 +13,6 @@ public class AutoTest extends LinearOpMode {
 
     @Override
     public void runOpMode() {
-
         frontLeftMotor = hardwareMap.get(DcMotor.class, "frontLeftMotor");
         frontRightMotor = hardwareMap.get(DcMotor.class, "frontRightMotor");
         backLeftMotor = hardwareMap.get(DcMotor.class, "backLeftMotor");
@@ -30,15 +28,12 @@ public class AutoTest extends LinearOpMode {
         backLeftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         backRightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-
-
         telemetry.addLine("Time Based Auto Ready");
         telemetry.update();
 
         waitForStart();
 
         if (opModeIsActive()) {
-
             drive(0.4, 0.4, 0.4, 0.4, 1500);
 
             sleep(500);
@@ -54,7 +49,6 @@ public class AutoTest extends LinearOpMode {
     }
 
     private void drive(double fl, double fr, double bl, double br, long time) {
-
         frontLeftMotor.setPower(fl);
         frontRightMotor.setPower(fr);
         backLeftMotor.setPower(bl);
@@ -66,7 +60,6 @@ public class AutoTest extends LinearOpMode {
     }
 
     private void stopMotors() {
-
         frontLeftMotor.setPower(0);
         frontRightMotor.setPower(0);
         backLeftMotor.setPower(0);
