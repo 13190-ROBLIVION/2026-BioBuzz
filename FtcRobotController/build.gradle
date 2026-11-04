@@ -1,16 +1,43 @@
 import java.text.SimpleDateFormat
 
+import com.android.build.api.variant.BuildConfigField
+import com.android.build.gradle.tasks.GenerateBuildConfig
+import org.gradle.api.provider.ValueSource
+import org.gradle.api.provider.ValueSourceParameters
+
 //
 // build.gradle in FtcRobotController
 //
 apply plugin: 'com.android.library'
 
+// APP_BUILD_TIME is the About-screen build stamp: FtcAboutActivity displays it
+// so teams can tell which build is on a robot controller. It must therefore be
+// fresh on EVERY build - including builds that reuse Gradle's configuration
+// cache (org.gradle.configuration-cache=true in gradle.properties).
+//
+// A ValueSource is Gradle's configuration-cache-safe way to produce a value like
+// this. A plain
+//     project.provider { new SimpleDateFormat(...).format(new Date()) }
+// does NOT survive configuration-cache reuse: its already-resolved value is
+// what gets stored in the cache entry, so later builds keep the first build's
+// timestamp (that is exactly the staleness CodeRabbit flagged). A ValueSource,
+// by contrast, is re-obtained whenever a cache entry is reused, so consuming
+// tasks see a fresh value and re-run.
+//
+// The format string below must stay exactly as-is: FtcAboutActivity parses it.
+abstract class AppBuildTimeSource implements ValueSource<String, ValueSourceParameters.None> {
+    @Override
+    String obtain() {
+        new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.ROOT).format(new Date())
+    }
+}
+
+def appBuildTime = providers.of(AppBuildTimeSource) { }
+
 android {
 
     defaultConfig {
         minSdkVersion 24
-        //noinspection ExpiredTargetSdkVersion
-        buildConfigField "String", "APP_BUILD_TIME", '"' + (new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.ROOT).format(new Date())) + '"'
     }
 
     buildFeatures {
@@ -52,3 +79,41 @@ java {
 }
 
 apply from: '../build.dependencies.gradle'
+
+// APP_BUILD_TIME used to be declared as
+//     buildConfigField "String", "APP_BUILD_TIME",
+//             '"' + new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.ROOT).format(new Date()) + '"'
+// inside defaultConfig - evaluated at CONFIGURATION time, which is what made it
+// go stale under the configuration cache. It is now fed straight into the
+// `items` input of GenerateBuildConfig (an @Input
+// MapProperty<String, BuildConfigField> holding exactly the custom fields).
+//
+// Two details that matter:
+//
+//  - items is a task INPUT. Gradle fingerprints it on every build, and because
+//    the value comes from the ValueSource above, the fingerprint changes every
+//    build, so generateDebugBuildConfig/generateReleaseBuildConfig re-run and
+//    stamp a fresh time (the old eager code behaved the same way - a per-build
+//    timestamp inherently means BuildConfig and everything depending on it
+//    recompiles).
+//
+//  - This must run in afterEvaluate. During plain script evaluation AGP has not
+//    created the generate*BuildConfig tasks yet; and a
+//    tasks.withType(...).configureEach registered that early gets overwritten
+//    again by AGP's own task wiring (its CreationAction assigns items, which
+//    would drop this entry). After evaluation the tasks exist and AGP's wiring
+//    has already run, so this put is the last word.
+afterEvaluate {
+    tasks.withType(GenerateBuildConfig).configureEach {
+        items.put(
+                'APP_BUILD_TIME',
+                appBuildTime.map { timestamp ->
+                    new BuildConfigField(
+                            'String',
+                            '"' + timestamp + '"',
+                            'Shown on the About screen so teams can identify the build'
+                    )
+                }
+        )
+    }
+}
