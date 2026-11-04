@@ -13,7 +13,7 @@ public class Feeder {
 
     public double ticksPer435Revolution = 383.6;
     private Shooting shooting = new Shooting();
-    private final int feedTimeMillis=1000;
+    private final int feedTimeMillis = 1000;
 
     /**
      * Intake Motor Initialization
@@ -30,11 +30,9 @@ public class Feeder {
         telemetry.update();
     }
 
-
-
     public void startFeeder(double spd) {
         feederMotor.setPower(spd);
-        telemetry.addData("Set feeder speed to: ",spd);
+        telemetry.addData("Set feeder speed to: ", spd);
     }
 
     public void feedOnce(double spd, boolean auto) {
@@ -52,7 +50,7 @@ public class Feeder {
                 return;
             }
         }
-        feedingCycleRunning=true;
+        feedingCycleRunning = true;
         startFeeder(spd);
         ElapsedTime timer = new ElapsedTime();
         timer.reset();
@@ -61,13 +59,13 @@ public class Feeder {
             linearOpMode.idle();
         }
         stopFeeder();
-        feedingCycleRunning=false;
+        feedingCycleRunning = false;
     }
 
     public void stopFeeder() {
         feederMotor.setPower(0);
 
         telemetry.addLine("Stopped feeder motor.");
+        telemetry.update();
     }
 }
-

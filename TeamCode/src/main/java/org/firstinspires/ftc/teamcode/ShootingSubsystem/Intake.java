@@ -25,14 +25,12 @@ public class Intake {
         telemetry.update();
     }
 
-
-
-    private double RPMtoTPS(double RPM, double countsPerRev){
-        return ((RPM/60) * countsPerRev);
+    private double RPMtoTPS(double RPM, double countsPerRev) {
+        return (RPM / 60) * countsPerRev;
     }
 
-    private double TPStoRPM(double TPS, double countsPerRev){
-        return ((TPS/countsPerRev) * 60);
+    private double TPStoRPM(double TPS, double countsPerRev) {
+        return (TPS / countsPerRev) * 60;
     }
 
     /**
@@ -85,4 +83,3 @@ public class Intake {
         stopIntake();
     }
 }
-
