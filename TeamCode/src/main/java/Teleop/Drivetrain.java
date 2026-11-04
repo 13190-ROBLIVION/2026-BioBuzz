@@ -25,9 +25,9 @@ public class Drivetrain extends LinearOpMode {
 
     // ----- Actor state (written by one tick step, read by the next) -----
     // Input state (from getInputs)
-    private double driveForward; // -1..1, left stick Y, deadzoned
-    private double driveStrafe; // -1..1, left stick X, deadzoned
-    private double driveTurn; // -1..1, right stick X, deadzoned
+    private double driveForward; // -1..1, left stick Y through the input pipeline
+    private double driveStrafe; // -1..1, left stick X through the input pipeline
+    private double driveTurn; // -1..1, right stick X through the input pipeline
     private boolean slowMode;
 
     // Localization state (from calculateHeading)
@@ -44,6 +44,13 @@ public class Drivetrain extends LinearOpMode {
     // ----- Per-frame input bookkeeping -----
     private boolean optionsPressedLastFrame = false;
 
+    // ----- Input pipeline state ----
+    // Deadzone hysteresis latches: a stick becomes active past DZ_ACTIVATE and
+    // only goes back to zeroed below DZ_REACTIVATE, so resting on the
+    // threshold can't chatter between "stopped" and "creeping".
+    private boolean driveStickActive = false;
+    private boolean turnStickActive = false;
+
     // ----- Delta time -----
     // One clock for the whole play session; delta = now - lastTick.
     private final ElapsedTime playClock = new ElapsedTime();
@@ -52,12 +59,27 @@ public class Drivetrain extends LinearOpMode {
 
     // ----- Stability -----
     // stillDurationSeconds accumulates DeltaSeconds while the bot is still and
-    // resets the moment it moves - exactly how UE's Hold trigger accumulates
-    // HeldDuration. isStable() flips only after holding past the threshold.
+    // resets the moment it moves
     private double stillDurationSeconds = 0.0;
 
     private static class constants {
-        private static final double DEADZONE = 0.05;
+        // ----- Input feel -----
+        // Revert to the old feel: DRIVE_CURVE_EXP = 1.0, TURN_CURVE_EXP = 1.0,
+        // DRIVE_TAU = 0.0, TURN_TAU = 0.0. Change ONE thing at a time and let
+        // the driver feel it in practice before keeping it!
+        // Stick deadzone, as magnitudes: activate past DZ_ACTIVATE, stay active
+        // until below DZ_REACTIVATE (hysteresis).
+        private static final double DZ_ACTIVATE = 0.05;
+        private static final double DZ_REACTIVATE = 0.02;
+        // Response curve exponent on the deadzone-rescaled magnitude.
+        // 1.0 = linear, 2.0 = quadratic: much finer control near center,
+        // full speed at full deflection either way.
+        private static final double DRIVE_CURVE_EXP = 2.0;
+        private static final double TURN_CURVE_EXP = 1.5;
+        // Exponential smoothing time constants, in SECONDS. Bigger = smoother
+        // but slightly laggier; 0.0 = off (snap straight to the raw stick).
+        private static final double DRIVE_TAU = 0.10;
+        private static final double TURN_TAU = 0.05;
         // Inches per second. The buffer for the bot to still be counted as still.
         private static final double stillSpeedBuffer = 0.5;
         // Degrees per second. The buffer for the bot to still be counted as still.
@@ -83,7 +105,8 @@ public class Drivetrain extends LinearOpMode {
     }
 
     /**
-     * one clock, delta = now - last. (The old pattern of "new
+     * gets a single DeltaTime float, in SECONDS. This does the
+     * same: one clock, delta = now - last. (The old pattern of "new
      * ElapsedTime() every loop" always reported ~0, which makes any
      * delta-scaled behavior silently dead.)
      */
@@ -99,6 +122,7 @@ public class Drivetrain extends LinearOpMode {
 
     /**
      * Runs before the op mode runs. Not quite the constructor.
+     * OnConstruction / PostInitializeComponents.
      */
     private void onConstruct() {
         initDriveMotors();
@@ -137,7 +161,7 @@ public class Drivetrain extends LinearOpMode {
      */
     private void tick(double deltaTimeSeconds) {
         getPreviousOptions(); // input edge detection first, it can re-zero heading
-        getInputs();
+        getInputs(deltaTimeSeconds);
         calculateHeading();
         fieldRotation();
         updateStability(deltaTimeSeconds);
@@ -147,7 +171,7 @@ public class Drivetrain extends LinearOpMode {
     // ----- Tick steps (each reads what the previous one wrote) -----
 
     /**
-     * act only on the transition
+     * EnhancedInput edge handling - act only on the transition
      * "not pressed -> pressed", so holding the button re-zeros exactly once.
      */
     void getPreviousOptions() {
@@ -165,31 +189,82 @@ public class Drivetrain extends LinearOpMode {
     }
 
     /**
-     * PlayerInput -> input axes. Raw sticks are inverted (stick up is
-     * negative), deadzoned, and stored on the actor for the movement step.
+     * PlayerInput -> input axes, through an EnhancedInput-style modifier
+     * chain: radial deadzone with hysteresis -> response curve -> exponential
+     * smoothing. Raw sticks are inverted (stick up is negative), everything
+     * scales by real time (deltaTimeSeconds), and each stage can be switched
+     * off via its constant for the old feel.
      */
-    void getInputs() {
-        driveForward = -gamepad1.left_stick_y;
-        driveStrafe = gamepad1.left_stick_x;
-        driveTurn = -gamepad1.right_stick_x;
+    void getInputs(double deltaTimeSeconds) {
+        // -- Deadzone: radial on the drive stick (it's one stick vector, so a
+        //    diagonal shouldn't be "twice as dead" as a cardinal direction),
+        //    1D on the turn stick. Rescaled so output starts at 0 at the
+        //    deadzone edge instead of jumping straight to the threshold value.
+        double rawForward = -gamepad1.left_stick_y;
+        double rawStrafe = gamepad1.left_stick_x;
+        double mag = Math.hypot(rawForward, rawStrafe);
 
-        if (Math.abs(driveForward) < constants.DEADZONE) {
-            driveForward = 0;
+        if (!driveStickActive && mag >= constants.DZ_ACTIVATE) {
+            driveStickActive = true;
+        } else if (driveStickActive && mag < constants.DZ_REACTIVATE) {
+            driveStickActive = false;
         }
 
-        if (Math.abs(driveStrafe) < constants.DEADZONE) {
-            driveStrafe = 0;
+        double targetForward = 0.0;
+        double targetStrafe = 0.0;
+
+        if (driveStickActive && mag > 0.0) {
+            double rescaled = Math.max(0.0, (mag - constants.DZ_ACTIVATE) / (1.0 - constants.DZ_ACTIVATE));
+            double scale = Math.pow(rescaled, constants.DRIVE_CURVE_EXP) / mag;
+
+            targetForward = rawForward * scale;
+            targetStrafe = rawStrafe * scale;
         }
 
-        if (Math.abs(driveTurn) < constants.DEADZONE) {
-            driveTurn = 0;
+        double rawTurn = -gamepad1.right_stick_x;
+        double turnMag = Math.abs(rawTurn);
+
+        if (!turnStickActive && turnMag >= constants.DZ_ACTIVATE) {
+            turnStickActive = true;
+        } else if (turnStickActive && turnMag < constants.DZ_REACTIVATE) {
+            turnStickActive = false;
+        }
+
+        double targetTurn = 0.0;
+
+        if (turnStickActive) {
+            double turnRescaled = Math.max(0.0, (turnMag - constants.DZ_ACTIVATE) / (1.0 - constants.DZ_ACTIVATE));
+            targetTurn = Math.signum(rawTurn) * Math.pow(turnRescaled, constants.TURN_CURVE_EXP);
         }
 
         slowMode = gamepad1.left_bumper;
+
+        // -- Exponential smoothing toward the shaped targets. Frame-rate
+        //    independent: with tau = 0.10s
+        //    an axis reaches ~95% of the stick position in ~0.3s, and decays
+        //    just as smoothly on release instead of cutting off hard.
+        driveForward = smoothAxis(driveForward, targetForward, deltaTimeSeconds, constants.DRIVE_TAU);
+        driveStrafe = smoothAxis(driveStrafe, targetStrafe, deltaTimeSeconds, constants.DRIVE_TAU);
+        driveTurn = smoothAxis(driveTurn, targetTurn, deltaTimeSeconds, constants.TURN_TAU);
     }
 
     /**
-     * the localization half. Fills heading, pose and
+     * One exponential-smoothing step: move 'current' toward 'target' by a
+     * fraction of the remaining distance that depends on real elapsed time,
+     * not on how many loop iterations happened. tau <= 0 disables smoothing.
+     */
+    private static double smoothAxis(double current, double target, double deltaTimeSeconds, double tau) {
+        if (tau <= 0.0) {
+            return target;
+        }
+
+        double alpha = 1.0 - Math.exp(-deltaTimeSeconds / tau);
+
+        return current + (target - current) * alpha;
+    }
+
+    /**
+     * the localization half of MovementComponent. Fills heading, pose and
      * velocity for the rest of the tick.
      */
     void calculateHeading() {
