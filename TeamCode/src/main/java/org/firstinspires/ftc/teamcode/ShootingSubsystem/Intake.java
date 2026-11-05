@@ -1,19 +1,22 @@
 package org.firstinspires.ftc.teamcode.ShootingSubsystem;
 
-import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.hardwareMap;
-import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.linearOpMode;
-import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.telemetry;
-
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
+
 public class Intake {
+    private Telemetry telemetry;
     DcMotor intakeMotor;
 
     /**
      * Intake Motor Initialization
      */
-    public void initIntake() {
+    public void initIntake(HardwareMap hardwareMap, Telemetry telemetry) {
+        this.telemetry = telemetry;
+
         intakeMotor = hardwareMap.get(DcMotor.class, "intakeMotor");
 
         intakeMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -65,10 +68,11 @@ public class Intake {
 
     /**
      * Sets intake motor to a speed for a set time.
+     * @param opMode caller LinearOpMode context
      * @param spd speed to set to
      * @param time time to run motor in millis
      */
-    public void intakeGo(double spd, double time) {
+    public void intakeGo(LinearOpMode opMode, double spd, double time) {
         intakeMotor.setPower(spd);
 
         telemetry.addData("Running intake for millis: ", time);
@@ -76,8 +80,8 @@ public class Intake {
         ElapsedTime timer = new ElapsedTime();
         timer.reset();
 
-        while (time >= timer.milliseconds()) {
-            linearOpMode.idle();
+        while (time >= timer.milliseconds() && opMode.opModeIsActive()) {
+            opMode.idle();
         }
 
         stopIntake();

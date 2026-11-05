@@ -55,7 +55,7 @@ public class Feeder {
         ElapsedTime timer = new ElapsedTime();
         timer.reset();
 
-        while (feedTimeMillis >= timer.milliseconds()) {
+        while (feedTimeMillis >= timer.milliseconds() && linearOpMode.opModeIsActive()) {
             linearOpMode.idle();
         }
         stopFeeder();
