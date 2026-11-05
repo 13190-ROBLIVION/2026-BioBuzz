@@ -189,10 +189,14 @@ public class Shooting {
         return speedInPerSec < constants.stillSpeedBuffer && turnDegPerSec < constants.stillTurnBuffer;
     }
 
-    // Implemented in C++ (src/main/cpp), exposed through the JNI bridge in ftcrobotcontroller.cpp.
-    private static native double RPMtoTPS(double RPM, double countsPerRev);
+    public double getShootingMotorVelocity() {
+        return shootingMotor.getVelocity();
+    }
 
-    private static native double TPStoRPM(double TPS, double countsPerRev);
+    // Implemented in C++ (src/main/cpp), exposed through the JNI bridge in ftcrobotcontroller.cpp.
+    public static native double RPMtoTPS(double RPM, double countsPerRev);
+
+    public static native double TPStoRPM(double TPS, double countsPerRev);
 
     public boolean isShootingReady() {
         return isBotStill();
