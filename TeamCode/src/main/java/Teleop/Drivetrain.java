@@ -382,16 +382,12 @@ public class Drivetrain extends LinearOpMode {
         switch (shooterPresetIndex) {
             case 1:
                 return "25%";
-
             case 2:
                 return "50%";
-
             case 3:
                 return "75%";
-
             case 4:
                 return "MAX";
-
             default:
                 return "OFF";
         }

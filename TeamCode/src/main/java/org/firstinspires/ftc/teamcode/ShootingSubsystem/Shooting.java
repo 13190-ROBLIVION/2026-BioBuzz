@@ -29,11 +29,7 @@ public class Shooting {
      * should use {@link #Shooting(HardwareMap, Telemetry, LinearOpMode)} instead.
      */
     public Shooting() {
-        this(
-            BlocksOpModeCompanion.hardwareMap,
-            BlocksOpModeCompanion.telemetry,
-            BlocksOpModeCompanion.linearOpMode
-        );
+        this(BlocksOpModeCompanion.hardwareMap, BlocksOpModeCompanion.telemetry, BlocksOpModeCompanion.linearOpMode);
     }
 
     /**
