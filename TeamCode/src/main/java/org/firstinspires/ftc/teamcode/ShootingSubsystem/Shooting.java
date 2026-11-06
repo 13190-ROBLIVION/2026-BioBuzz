@@ -5,14 +5,9 @@ import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.lin
 import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.telemetry;
 
 import com.qualcomm.hardware.sparkfun.SparkFunOTOS;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
-import com.qualcomm.robotcore.util.Range;
-import org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion;
-import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
@@ -23,26 +18,8 @@ public class Shooting {
         System.loadLibrary("ftcrobotcontroller");
     }
 
-    /**
-     * Blocks-style constructor - leans on the BlocksOpModeCompanion statics,
-     * which are only populated while a Blocks op mode runs. Java op modes
-     * should use {@link #Shooting(HardwareMap, Telemetry, LinearOpMode)} instead.
-     */
     public Shooting() {
-        this(BlocksOpModeCompanion.hardwareMap, BlocksOpModeCompanion.telemetry, BlocksOpModeCompanion.linearOpMode);
-    }
-
-    /**
-     * Build Shooting from explicit handles - the flavor a TeleOp wants.
-     * Same setup as the blocks constructor, just without trusting the
-     * BlocksOpModeCompanion statics (which are null in a java op mode).
-     *
-     * @param hardwareMap the op mode's hardwareMap
-     * @param telemetry the op mode's telemetry
-     * @param linearOpMode the owning op mode, used by the blocking shoot() methods
-     */
-    public Shooting(HardwareMap hardwareMap, Telemetry telemetry, LinearOpMode linearOpMode) {
-        shootingMotor = findShootingMotor(hardwareMap);
+        shootingMotor = hardwareMap.get(DcMotorEx.class, "shootingMotor");
 
         shootingMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         shootingMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -66,26 +43,6 @@ public class Shooting {
 
         telemetry.addLine("Initialized shooting stuff!");
         telemetry.update();
-    }
-
-    /**
-     * TimeBasedAuto drives the flywheel as "shooterMotor"; older code called
-     * it "shootingMotor". Accept either name so one robot config always works.
-     */
-    private static DcMotorEx findShootingMotor(HardwareMap hardwareMap) {
-        DcMotorEx motor = hardwareMap.tryGet(DcMotorEx.class, "shooterMotor");
-
-        if (motor == null) {
-            motor = hardwareMap.tryGet(DcMotorEx.class, "shootingMotor");
-        }
-
-        if (motor == null) {
-            throw new IllegalArgumentException(
-                "No shooter motor in the robot config (tried \"shooterMotor\" and \"shootingMotor\")"
-            );
-        }
-
-        return motor;
     }
 
     private DcMotorEx shootingMotor;
@@ -115,8 +72,6 @@ public class Shooting {
     /**
      * Just set the motors to a power.
      * You need to stop them later.
-     * BLOCKING - runs its own loop, so do NOT call this from a TeleOp tick;
-     * use {@link #setPower(double)} there instead.
      * @param shotPower
      */
     public void shoot(double shotPower) {
@@ -133,7 +88,6 @@ public class Shooting {
 
     /**
      * Shoot with a timer for how long the motor spins based on power.
-     * BLOCKING - do not call from a TeleOp tick.
      * @param shotPower
      * @param activationTime
      */
@@ -154,7 +108,6 @@ public class Shooting {
 
     /**
      * Shoot for a certain amount of time based on RPM instead of power.
-     * BLOCKING - do not call from a TeleOp tick.
      * @param targetRPM
      * @param activationTime
      */
@@ -181,7 +134,6 @@ public class Shooting {
     /**
      * Shoot based on RPM.
      * You need to stop it later.
-     * BLOCKING - do not call from a TeleOp tick; use {@link #setRPM(double)} there instead.
      * @param targetRPM
      */
     public void shootRPM(double targetRPM) {
@@ -190,35 +142,6 @@ public class Shooting {
         whileShooting();
 
         return;
-    }
-
-    // ----- Non-blocking controls (safe to call every tick from a TeleOp) -----
-
-    /**
-     * Set the flywheel to a raw power - the shoot(power) flavor without the
-     * blocking loop. Uses open-loop power; call {@link #setRPM(double)} instead
-     * if you want the closed-loop velocity control.
-     * @param shotPower -1..1, clipped
-     */
-    public void setPower(double shotPower) {
-        shootingMotor.setPower(Range.clip(shotPower, -1.0, 1.0));
-    }
-
-    /**
-     * Set the flywheel to a target RPM using velocity control - the
-     * shootRPM() flavor without the blocking loop.
-     * @param targetRPM
-     */
-    public void setRPM(double targetRPM) {
-        shootingMotor.setVelocity(RPMtoTPS(targetRPM, constants.shootingMotorCPR));
-    }
-
-    /**
-     * Current flywheel speed in RPM - same conversion the blocking methods
-     * print to telemetry.
-     */
-    public double getRPM() {
-        return TPStoRPM(shootingMotor.getVelocity(), constants.shootingMotorCPR);
     }
 
     // Reset the motors back to idle
