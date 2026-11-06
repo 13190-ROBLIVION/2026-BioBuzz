@@ -10,6 +10,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import java.util.Locale;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.teamcode.ShootingSubsystem.AnalogBumperGamepad;
+import org.firstinspires.ftc.teamcode.ShootingSubsystem.Shooting;
 
 @TeleOp(name = "Drivetrain", group = "Teleop")
 public class Drivetrain extends LinearOpMode {
@@ -40,6 +42,21 @@ public class Drivetrain extends LinearOpMode {
     private double frontRightPower;
     private double backLeftPower;
     private double backRightPower;
+
+    // ----- Shooting (right bumper) -----
+    // FTC bumpers are digital only, so the shooter pad emulates an analog one:
+    // tap = step through the presets, hold = ramp the power up smoothly.
+    private static final double[] SHOOTER_PRESETS = { 0.0, 0.25, 0.50, 0.75, 1.00 };
+
+    private Shooting shooter;
+    private boolean shooterAvailable = false;
+    private final AnalogBumperGamepad shooterPad = new AnalogBumperGamepad();
+
+    // Actor state for the shooter (written by updateShooting, read by telemetry)
+    private double shooterPower = 0.0; // power currently applied to the flywheel
+    private int shooterPresetIndex = 0; // index into SHOOTER_PRESETS for the tap display
+    private double shooterHoldStartPower = 0.0; // power when a hold began, ramps up from here
+    private boolean shooterRamping = false; // true while a hold is actively ramping
 
     // ----- Per-frame input bookkeeping -----
     private boolean optionsPressedLastFrame = false;
@@ -76,9 +93,18 @@ public class Drivetrain extends LinearOpMode {
         waitForStart();
         beginPlay();
 
-        while (opModeIsActive()) {
-            lastDeltaTimeSeconds = getDeltaTimeSeconds();
-            tick(lastDeltaTimeSeconds);
+        try {
+            while (opModeIsActive()) {
+                lastDeltaTimeSeconds = getDeltaTimeSeconds();
+                tick(lastDeltaTimeSeconds);
+            }
+        } finally {
+            // Don't let the flywheel keep spinning after the op mode ends.
+            // (setPower, not stopShootingMotors - that one prints to the
+            // Blocks telemetry static, which is null in a java op mode.)
+            if (shooterAvailable) {
+                shooter.setPower(0.0);
+            }
         }
     }
 
@@ -104,6 +130,7 @@ public class Drivetrain extends LinearOpMode {
         initDriveMotors();
         initImu();
         initOtos();
+        initShooting();
 
         telemetry.addLine("FIELD CENTRIC READY");
         telemetry.addData("Localizer", useOtos ? "OTOS" : "IMU FALLBACK");
@@ -111,6 +138,7 @@ public class Drivetrain extends LinearOpMode {
         telemetry.addLine("Right Stick X = Rotate");
         telemetry.addLine("OPTIONS = Reset Heading + Position");
         telemetry.addLine("Hold LEFT BUMPER = Slow Mode");
+        telemetry.addLine("RIGHT BUMPER = Shooter Power (tap = presets, hold = ramp)");
         telemetry.update();
     }
 
@@ -141,6 +169,7 @@ public class Drivetrain extends LinearOpMode {
         calculateHeading();
         fieldRotation();
         updateStability(deltaTimeSeconds);
+        updateShooting(deltaTimeSeconds);
         tickTelemetry();
     }
 
@@ -270,6 +299,105 @@ public class Drivetrain extends LinearOpMode {
     }
 
     /**
+     * The shooter is optional: if the robot config has no flywheel motor we
+     * still want to drive. Shooting throws a clear error when the motor is
+     * missing - we just turn that into a flag.
+     */
+    private void initShooting() {
+        try {
+            shooter = new Shooting(hardwareMap, telemetry, this);
+            shooterAvailable = true;
+        } catch (Exception error) {
+            shooter = null;
+            shooterAvailable = false;
+            telemetry.addLine("Shooter not found - shooting controls disabled");
+            telemetry.addData("Reason", error.getMessage());
+        }
+    }
+
+    /**
+     * Right bumper drives the flywheel. The bumper itself is digital, so
+     * shooterPad emulates the analog part (see AnalogBumperGamepad):
+     *
+     * - tap = step up a preset: OFF -> 25% -> 50% -> 75% -> MAX -> OFF ...
+     * - hold = ramp the power up smoothly from wherever it is, latch on release
+     *
+     * Both paths end in shooterPower, which is applied once per tick.
+     */
+    void updateShooting(double deltaTimeSeconds) {
+        if (!shooterAvailable) return;
+
+        shooterPad.update(gamepad1, deltaTimeSeconds);
+
+        if (shooterPad.right_bumper_just_pressed) {
+            shooterHoldStartPower = shooterPower;
+        }
+
+        if (shooterPad.right_bumper_hold_started) {
+            shooterRamping = true;
+        }
+
+        if (shooterPad.right_bumper_tapped) {
+            shooterRamping = false;
+            shooterPresetIndex = (shooterPresetIndex + 1) % SHOOTER_PRESETS.length;
+            shooterPower = SHOOTER_PRESETS[shooterPresetIndex];
+            gamepad1.rumble(120);
+        }
+
+        if (shooterPad.right_bumper_holding) {
+            double analog = shooterPad.right_bumper_analog;
+            shooterPower = shooterHoldStartPower + (1.0 - shooterHoldStartPower) * analog;
+        }
+
+        if (shooterPad.right_bumper_just_released && !shooterPad.right_bumper_tapped) {
+            // Hold finished: the ramped power stays where it is, just re-point
+            // the preset display at the nearest step.
+            shooterRamping = false;
+            shooterPresetIndex = nearestPresetIndex(shooterPower);
+            gamepad1.rumble(200);
+        }
+
+        shooter.setPower(shooterPower);
+    }
+
+    private int nearestPresetIndex(double power) {
+        int nearest = 0;
+        double nearestDiff = Double.MAX_VALUE;
+
+        for (int index = 0; index < SHOOTER_PRESETS.length; index++) {
+            double diff = Math.abs(SHOOTER_PRESETS[index] - power);
+
+            if (diff < nearestDiff) {
+                nearestDiff = diff;
+                nearest = index;
+            }
+        }
+
+        return nearest;
+    }
+
+    private String shooterPresetLabel() {
+        if (shooterRamping) return "ramping";
+
+        switch (shooterPresetIndex) {
+            case 1:
+                return "25%";
+
+            case 2:
+                return "50%";
+
+            case 3:
+                return "75%";
+
+            case 4:
+                return "MAX";
+
+            default:
+                return "OFF";
+        }
+    }
+
+    /**
      * Debug stuff. IDK
      */
     void tickTelemetry() {
@@ -299,6 +427,17 @@ public class Drivetrain extends LinearOpMode {
         telemetry.addData("FR", "%.2f", frontRightPower);
         telemetry.addData("BL", "%.2f", backLeftPower);
         telemetry.addData("BR", "%.2f", backRightPower);
+
+        telemetry.addLine();
+        telemetry.addLine("===== SHOOTER =====");
+
+        if (shooterAvailable) {
+            telemetry.addData("Power", "%.2f (%s)", shooterPower, shooterPresetLabel());
+            telemetry.addData("Motor RPM", "%.0f", shooter.getRPM());
+            telemetry.addData("Aim", shooter.isShootingReady() ? "READY (bot still)" : "bot moving");
+        } else {
+            telemetry.addLine("Shooter not in config - controls disabled");
+        }
 
         telemetry.addLine();
         telemetry.addLine("===== STATUS =====");
