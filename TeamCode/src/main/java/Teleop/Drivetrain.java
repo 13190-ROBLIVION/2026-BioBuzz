@@ -10,6 +10,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import java.util.Locale;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.teamcode.ShootingSubsystem.AnalogBumperGamepad;
 
 @TeleOp(name = "Drivetrain", group = "Teleop")
 public class Drivetrain extends LinearOpMode {
@@ -30,6 +31,12 @@ public class Drivetrain extends LinearOpMode {
     private double driveTurn; // -1..1, right stick X, deadzoned
     private boolean slowMode;
 
+    // Shooting input (from getInputs). Bumpers are digital at the driver
+    // station, so shooterPad mirrors gamepad1 and emulates the missing axis:
+    // the longer the right bumper is held, the deeper its analog value (0..1)
+    // ramps - that depth is what the shooter power follows.
+    private final AnalogBumperGamepad shooterPad = new AnalogBumperGamepad();
+
     // Localization state (from calculateHeading)
     private double botHeadingRadians;
     private SparkFunOTOS.Pose2D pose = null;
@@ -40,6 +47,13 @@ public class Drivetrain extends LinearOpMode {
     private double frontRightPower;
     private double backLeftPower;
     private double backRightPower;
+
+    // Shooting state (from updateShooting) - the power the flywheel SHOULD run
+    // at. NOT WIRED YET: nothing consumes shooterPower, so no motor moves.
+    private double shooterPower; // 0..1, power the flywheel should run at
+    private int shooterPresetIndex; // which preset the tap display points at
+    private double shooterHoldStartPower; // power when the current hold began
+    private boolean shooterRamping; // true while a hold is actively ramping
 
     // ----- Per-frame input bookkeeping -----
     private boolean optionsPressedLastFrame = false;
@@ -66,6 +80,10 @@ public class Drivetrain extends LinearOpMode {
         private static final double stillDebounceSeconds = 0.25;
         private static final double SLOW_MODE_MULTIPLIER = 0.35;
         private static final double STRAFE_GAIN = 1.1; // mecanums strafe slower than they drive
+
+        // Flywheel powers the right-bumper taps step through:
+        // OFF -> 25% -> 50% -> 75% -> MAX -> OFF ...
+        private static final double[] SHOOTER_PRESETS = { 0.0, 0.25, 0.50, 0.75, 1.00 };
     }
 
     // ----- Game loop -----
@@ -111,6 +129,7 @@ public class Drivetrain extends LinearOpMode {
         telemetry.addLine("Right Stick X = Rotate");
         telemetry.addLine("OPTIONS = Reset Heading + Position");
         telemetry.addLine("Hold LEFT BUMPER = Slow Mode");
+        telemetry.addLine("RIGHT BUMPER = Shooter Power (tap = presets, hold = ramp)");
         telemetry.update();
     }
 
@@ -137,10 +156,11 @@ public class Drivetrain extends LinearOpMode {
      */
     private void tick(double deltaTimeSeconds) {
         getPreviousOptions(); // input edge detection first, it can re-zero heading
-        getInputs();
+        getInputs(deltaTimeSeconds);
         calculateHeading();
         fieldRotation();
         updateStability(deltaTimeSeconds);
+        updateShooting();
         tickTelemetry();
     }
 
@@ -167,8 +187,11 @@ public class Drivetrain extends LinearOpMode {
     /**
      * PlayerInput -> input axes. Raw sticks are inverted (stick up is
      * negative), deadzoned, and stored on the actor for the movement step.
+     * This is also the only place the shooting input gets read: the right
+     * bumper goes through shooterPad so the rest of the tick sees captured
+     * input state, same as every other input here.
      */
-    void getInputs() {
+    void getInputs(double deltaTimeSeconds) {
         driveForward = -gamepad1.left_stick_y;
         driveStrafe = gamepad1.left_stick_x;
         driveTurn = -gamepad1.right_stick_x;
@@ -186,6 +209,11 @@ public class Drivetrain extends LinearOpMode {
         }
 
         slowMode = gamepad1.left_bumper;
+
+        // Shooting input: bumpers are digital, so "how deeply pressed" is
+        // emulated over time - tap = presets, hold = a 0..1 depth that ramps
+        // while the bumper is down (see AnalogBumperGamepad).
+        shooterPad.update(gamepad1, deltaTimeSeconds);
     }
 
     /**
@@ -257,6 +285,52 @@ public class Drivetrain extends LinearOpMode {
     }
 
     /**
+     * the shooting half. Turns the right-bumper input captured in getInputs
+     * into the power the flywheel should run at:
+     *
+     * - tap = step up a preset: OFF -> 25% -> 50% -> 75% -> MAX -> OFF ...
+     * - hold = ramp the power up with how deeply the bumper is pressed
+     *   (shooterPad's emulated analog value), latching wherever it got to
+     *   when the bumper releases.
+     *
+     * NOT WIRED YET: this only computes shooterPower (telemetry reads it).
+     * No Shooting subsystem, no motor calls - that hookup is a later change.
+     */
+    void updateShooting() {
+        if (shooterPad.right_bumper_just_pressed) {
+            shooterHoldStartPower = shooterPower;
+        }
+
+        if (shooterPad.right_bumper_hold_started) {
+            shooterRamping = true;
+        }
+
+        if (shooterPad.right_bumper_tapped) {
+            shooterRamping = false;
+            shooterPresetIndex = (shooterPresetIndex + 1) % constants.SHOOTER_PRESETS.length;
+            shooterPower = constants.SHOOTER_PRESETS[shooterPresetIndex];
+            gamepad1.rumble(120);
+        }
+
+        if (shooterPad.right_bumper_holding) {
+            // press depth drives the ramp: deeper press -> more power
+            double depth = shooterPad.right_bumper_analog;
+            shooterPower = shooterHoldStartPower + (1.0 - shooterHoldStartPower) * depth;
+        }
+
+        if (shooterPad.right_bumper_just_released && !shooterPad.right_bumper_tapped) {
+            // Hold finished: the ramped power stays where it is, just re-point
+            // the preset display at the nearest step.
+            shooterRamping = false;
+            shooterPresetIndex = nearestPresetIndex(shooterPower);
+            gamepad1.rumble(200);
+        }
+
+        // TODO: wire shooting up - apply shooterPower to the flywheel (the
+        // Shooting subsystem's non-blocking setter) once that lands.
+    }
+
+    /**
      * True once the bot has been still for stillDebounceSeconds. Requires the
      * OTOS (no linear velocity in IMU fallback mode). This is the signal
      * Shooting.isShootingReady() wants.
@@ -301,6 +375,13 @@ public class Drivetrain extends LinearOpMode {
         telemetry.addData("BR", "%.2f", backRightPower);
 
         telemetry.addLine();
+        telemetry.addLine("===== SHOOTER =====");
+        // Controls only for now: updateShooting computes the power, nothing
+        // drives a flywheel with it yet.
+        telemetry.addData("Power", "%.2f (%s)", shooterPower, shooterPresetLabel());
+        telemetry.addData("Bumper depth", "%.2f", shooterPad.right_bumper_analog);
+
+        telemetry.addLine();
         telemetry.addLine("===== STATUS =====");
         telemetry.addData("stat fps", displayDelta > 0 ? String.format(Locale.US, "%.0f", 1.0 / displayDelta) : "-");
         telemetry.addData(
@@ -325,6 +406,48 @@ public class Drivetrain extends LinearOpMode {
         }
 
         return angle;
+    }
+
+    /**
+     * Index of the SHOOTER_PRESETS entry closest to power - used to re-point
+     * the preset display after a hold latches between two steps.
+     */
+    private int nearestPresetIndex(double power) {
+        int nearest = 0;
+        double nearestDiff = Double.MAX_VALUE;
+
+        for (int index = 0; index < constants.SHOOTER_PRESETS.length; index++) {
+            double diff = Math.abs(constants.SHOOTER_PRESETS[index] - power);
+
+            if (diff < nearestDiff) {
+                nearestDiff = diff;
+                nearest = index;
+            }
+        }
+
+        return nearest;
+    }
+
+    /**
+     * What the shooter power display calls the current preset.
+     */
+    private String shooterPresetLabel() {
+        if (shooterRamping) {
+            return "ramping";
+        }
+
+        switch (shooterPresetIndex) {
+            case 1:
+                return "25%";
+            case 2:
+                return "50%";
+            case 3:
+                return "75%";
+            case 4:
+                return "MAX";
+            default:
+                return "OFF";
+        }
     }
 
     private void initDriveMotors() {
